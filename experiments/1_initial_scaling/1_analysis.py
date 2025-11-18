@@ -21,6 +21,8 @@ except FileNotFoundError:
     print("Error: '1_initial_scaling.csv' not found.")
     exit()
 
+# Strong Scaling Analysis Plot
+
 fig, ax1 = plt.subplots(figsize=(10, 7))
 
 color1 = 'tab:blue'
@@ -47,8 +49,53 @@ ax2.legend(lines + lines2, labels + labels2, loc='upper center')
 
 fig.tight_layout()
 
-png_filepath = '../../report/plots/1_strong_scaling_plot.png'
+png_filepath = '../../report/plots/1.1_strong_scaling_plot.png'
 plt.savefig(f"{png_filepath}", dpi=300, bbox_inches='tight')
+print(f"Plot saved as '{png_filepath}'")
+
+plt.close()
+
+# Analysis of Training vs. Setup Time
+
+ig, ax1 = plt.subplots(figsize=(12, 8))
+color1 = 'tab:blue' # Changed colors for better standard visual contrast
+color2 = 'tab:red'
+
+ax1.loglog(df['Nodes'], df['Job Training Time'], color=color1, marker='o', linestyle='-', label='Job Training Time (s)')
+ax1.set_xlabel('Number of Nodes (Log Scale)')
+ax1.set_ylabel('Job Training Time (s) (Log Scale)', color=color1)
+ax1.tick_params(axis='y', labelcolor=color1)
+ax1.set_xticks(df['Nodes'])
+ax1.get_xaxis().set_major_formatter(mticker.ScalarFormatter())
+
+ax2 = ax1.twinx()
+ax2.loglog(df['Nodes'], df['Training setup time'], color=color2, marker='s', linestyle='--', label='Training Setup Time (s)')
+ax2.set_ylabel('Training Setup Time (s) (Log Scale)', color=color2)
+ax2.tick_params(axis='y', labelcolor=color2)
+
+for index, row in df.iterrows():
+    ax1.annotate(f"{int(row['Job Training Time'])}s",
+                 (row['Nodes'], row['Job Training Time']),
+                 textcoords="offset points",
+                 xytext=(-30,-15),
+                 ha='left',
+                 color=color1)
+
+    ax2.annotate(f"{int(row['Training setup time'])}s",
+                 (row['Nodes'], row['Training setup time']),
+                 textcoords="offset points",
+                 xytext=(-30,10),
+                 ha='left',
+                 color=color2)
+
+plt.title('Analysis of Training vs. Setup Time', fontweight='bold')
+lines, labels = ax1.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax2.legend(lines + lines2, labels + labels2, loc='center left')
+fig.tight_layout()
+
+png_filepath = '../../report/plots/1.2_training_time_analysis.png'
+plt.savefig(png_filepath, dpi=300, bbox_inches='tight')
 print(f"Plot saved as '{png_filepath}'")
 
 plt.close()
