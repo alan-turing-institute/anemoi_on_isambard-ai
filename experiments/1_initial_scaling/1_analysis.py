@@ -41,11 +41,29 @@ ax2.loglog(df['Nodes'], df['Total Node Hours (h)'], color=color2, marker='s', li
 ax2.set_ylabel('Total Node Hours (h) (Log Scale)', color=color2)
 ax2.tick_params(axis='y', labelcolor=color2)
 
+ax1.set_xticks(df['Nodes'])
+ax1.get_xaxis().set_major_formatter(mticker.ScalarFormatter())
+
+for index, row in df.iterrows():
+    ax1.annotate(f"{int(row['Slurm Total Time (s)'])}s",
+                 (row['Nodes'], row['Slurm Total Time (s)']),
+                 textcoords="offset points",
+                 xytext=(-30,-15),
+                 ha='left',
+                 color=color1)
+
+    ax2.annotate(f"{int(row['Total Node Hours (h)'])}h",
+                 (row['Nodes'], row['Total Node Hours (h)']),
+                 textcoords="offset points",
+                 xytext=(-30,10),
+                 ha='left',
+                 color=color2)
+
 plt.title('Anemoi Training Strong Scaling Performance', fontweight='bold')
 
 lines, labels = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax2.legend(lines + lines2, labels + labels2, loc='upper center')
+ax2.legend(lines + lines2, labels + labels2, loc='center left')
 
 fig.tight_layout()
 
@@ -72,6 +90,9 @@ ax2 = ax1.twinx()
 ax2.loglog(df['Nodes'], df['Training setup time'], color=color2, marker='s', linestyle='--', label='Training Setup Time (s)')
 ax2.set_ylabel('Training Setup Time (s) (Log Scale)', color=color2)
 ax2.tick_params(axis='y', labelcolor=color2)
+
+ax1.set_xticks(df['Nodes'])
+ax1.get_xaxis().set_major_formatter(mticker.ScalarFormatter())
 
 for index, row in df.iterrows():
     ax1.annotate(f"{int(row['Job Training Time'])}s",
