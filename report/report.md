@@ -88,8 +88,63 @@ The `optimizer_step` accounts for nearly 100% of the batch time in all configura
 
 - While the Backward pass (`backward`) times remained relatively stable (0.73s to 0.78s), the Forward pass (`training_step`) degraded significantly, taking nearly twice as long on 50 nodes (0.48s) compared to 1 node (0.27s).
 
-This suggests that the distributed strategy (DDPGroupStrategy) introduces significant overhead even during the forward pass, likely due to broadcast operations or synchronization barriers required before computation can begin.
+This suggests that the distributed strategy (DDPGroupStrategy) introduces significant overhead even during the forward pass, likely due to broadcast operations or synchronisation barriers required before computation can begin.
 
 - The Data Loading Throughput is consistently orders of magnitude higher than the training throughput (e.g., 7,891 vs 0.54 on 50 nodes). The model is compute/network bound, not I/O bound.
 
-- Unlike training, validation throughput increases with node count (1.46 to 4.65). This is somewhat expected behaviour, as validation typically requires less frequent communication (synchronization often happens only at the end of the epoch), allowing the system to utilise the parallel compute of 50 nodes effectively for inference.
+- Unlike training, validation throughput increases with node count (1.46 to 4.65). This is somewhat expected behaviour, as validation typically requires less frequent communication (synchronisation often happens only at the end of the epoch), allowing the system to utilise the parallel compute of 50 nodes effectively for inference.
+
+### NCCL Benchmarking
+
+To further investigate the communication overheads identified in the profiling step, we conducted NCCL benchmarking tests using the NCCL tests suite. These benchmarks help us understand the performance characteristics of the underlying communication library (NCCL) used for synchronising gradients across multiple GPUs in a distributed training setup.
+
+The NCCL `All-Reduce` test is a synthetic benchmark designed to measure the raw communication speed of the All-Reduce operation, which is the critical synchronisation step used in distributed deep learning to average gradients across all GPUs. By performing this specific collective operation repeatedly on dummy data, the test isolates the performance of the physical interconnects, such as NVLink for intra-node communication and Slingshot or InfiniBand for inter-node traffic, stripping away any overhead from the deep learning framework (like PyTorch) or data loading pipelines. This makes it the definitive diagnostic tool for determining whether training bottlenecks are caused by physical network limitations (infrastructure) or software inefficiencies, as it provides a clear "speed limit" (Bus Bandwidth) that the hardware can support.
+
+We have carried out the NCCL All-Reduce benchmarks on Isambard-AI across varying node counts: 1, 10, 50, and 200 nodes. Each test was executed using the `job_nccl_test.sh` script, which submits the benchmark job to the Slurm scheduler with the specified number of nodes.
+
+| Nodes | Total GPUs | Peak Bus Bandwidth (GB/s) | Scaling Efficiency |
+| :--- | :--- | :--- | :--- |
+| **1** | 4 | **342.5** | Baseline (NVLink) |
+| **10** | 40 | **92.7** | Excellent (Slingshot) |
+| **50** | 200 | **91.2** | Excellent (Slingshot) |
+| **200** | 800 | **70.8** | Good (~23% drop) |
+
+Key observation: network is not the bottleneck: The bandwidth remains stable between 10 nodes (92.7 GB/s) and 50 nodes (91.2 GB/s). This suggests that the "negative scaling" seen in the training runs is **not** caused by network congestion or hardware limits.
+
+### Detailed Profiling
+
+
+
+# TODO List of Next Steps
+
+Possible ways to address these bottlenecks include:
+
+- From diagnostics side:
+  - [Done] Check NCCL infrastructure
+  - Change the profiling configuration from `simple` to `detailed` to get more granular timing information to see what the GPUs are doing and that they are not idling. Also check the `nccl:all_reduce` and whether they are overlapping with computation.
+  - Review the Strategy, maybe pipeline parallelism or model parallelism would be better suited than data parallelism for this model architecture.
+    -  In your trainer configuration or script
+    ```
+    Trainer(
+        ...,
+        strategy="ddp_with_async_comm", # or just 'ddp'
+        # Enable CUDA Graphs here usually requires specific flag or
+        # manual wrapping in the LightningModule if not natively supported yet.
+    )
+    ```
+    - in standard pytorch:
+    ```python
+
+    g = torch.cuda.CUDAGraph()
+    with torch.cuda.graph(g):
+        static_output = model(static_input)
+
+    # Replay (This is what happens during training)
+    g.replay()
+    ```
+
+- From setup side:
+  - Increasing Gradient Accumulation Steps: By accumulating gradients over multiple batches before performing an optimizer step, we can reduce the frequency of synchronisation operations, thereby lowering communication overhead.
+    - This approach effectively increases the amount of computation done per communication event, improving overall efficiency. However, it also increases memory usage, which may limit batch size or model size, so before implementing this change, we need to ensure that the GPU memory can accommodate the larger effective batch size.
+  - Check local batch size: Increase the batch size per GPU to the maximum memory limit.
+
