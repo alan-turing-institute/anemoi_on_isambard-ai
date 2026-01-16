@@ -133,7 +133,7 @@ Total mult-adds (Units.TERABYTES): 23.42
 
 The model summary shows 23.42 Tera-operations (Mult-Adds) per pass. For a 231M parameter model, this is an extremely high ratio of compute-to-parameters, caused by the large number of nodes (40,320) and the Graph Transformer's edge-based operations.
 
-With the Average Step Time of ~1.25s, this gives us a compute throughput of approximately 18.7 TFLOPS, whereas the advertised performance of GH200 if using Tensor Cores is FP32 989 TFLOPS per GPU and if not using Tensor cores FP32 67 TFLOPS. 
+With the Average Step Time of ~1.23s, this gives us a compute throughput of approximately 18.7 TFLOPS, whereas the advertised performance of GH200 if using Tensor Cores is FP32 989 TFLOPS per GPU and if not using Tensor cores FP32 67 TFLOPS. 
 
 https://www.nvidia.com/en-gb/data-center/h100/
 
@@ -146,7 +146,7 @@ GPU Utilization (from GPU Summary): 92.93%
 SM Efficiency (from GPU Summary): 90.93%
 ```
 
-Since the GPU is performing at 18.7 TFLOPS with over 90% utilisation, however the theoretical peak is much higher, this suggests that the model is **memory bandwidth bound**.
+Since the GPU is performing at 18.05 TFLOPS with over 90% utilisation, however the theoretical peak is much higher, this suggests that the model is **memory bandwidth bound**.
 
 Another important measure is the Achieved Occupancy:
 
@@ -162,10 +162,28 @@ To address this we have tried adjusting the `num_chunks` parameter in the `proce
 
 This setting did not change the throughput as the model is Memory-Bandwidth Bound, not compute-bound, and the bottleneck is located in the Mapper layers, not the Processor. According to the model summary, the Encoder and Decoder (Mappers) are performing massive linear operations on 322,560 and 87,552 nodes respectively, which accounts for the vast majority of the 23.4 Tera-ops per pass.
 
-#### Triton
+#### Action 2: Model compilation and Triton
 
+Model compilation via `torch.compile` is an optimisation process that transforms standard PyTorch code into high-performance machine code specifically tuned for the target hardware, in this case, NVIDIA's Grace Hopper GPUs. It works by capturing the model’s computational graph and applying "kernel fusion," a technique that merges multiple sequential operations, such as a Linear layer followed by a GELU activation and a LayerNorm, into a single execution step. 
 
+This optimisation is powered by **Triton**, a domain-specific compiler and language that allows `torch.compile` to generate highly efficient CUDA kernels directly from Python. By using Triton, the model can keep intermediate data within the GPU's fast on-chip SRAM or L2 cache instead of constantly writing and reading activations from the 120GB HBM3 main memory. 
 
+In our case, for a memory-bandwidth bound model like Anemoi, this significantly reduces the traffic on the memory bus, which is often the primary bottleneck on the Grace Hopper architecture.
+
+| Metric | Without Compile | With Compile | Difference |
+| :--- | :--- | :--- | :--- |
+| **Average Step Time** | 1,297,112 us (**1.297s**) | 1,171,395 us (**1.171s**) | **~10% Faster** |
+| **Kernel Time** | 1,204,099 us | 1,087,890 us | **~10% reduction** |
+| **SM Efficiency** | 90.75% | 91.58% | Slightly Better |
+| **Achieved Occupancy** | **41.86%** | **37.0%** | **-11.7% Lower** |
+| **Realized TFLOPS** | 18.05 TFLOPS | **20.00 TFLOPS** | **+11% Increase** |
+
+Observations:
+
+- The profiling results demonstrate the tangible benefits, showing a 10% improvement in total step time (reducing from 1.29s to 1.17s) and an increase in realised math performance to 20 TFLOPS.
+- The resulsts also show a drop in Achieved Occupancy (from 41.8% to 37.0%) alongside the speed increase. This confirms that Triton successfully fused multiple kernels; these fused kernels use more registers per thread to keep data on-chip, which limits the number of active threads but completes the overall batch faster by minimising memory-stalls. While the massive matrix multiplications in the model's mapper layers remain limited by the physical bandwidth of the HBM3 memory, the compilation of the Graph Transformer processor effectively bypassed the "memory wall" for the rest of the architecture, resulting in a more efficient utilisation of the Hopper core.
+
+#### Action 3: FP8
 
 # TODO List of Next Steps
 
