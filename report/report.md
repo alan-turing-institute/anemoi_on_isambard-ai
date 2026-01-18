@@ -185,13 +185,34 @@ Observations:
 
 #### Action 3: FP8
 
+The performance comparison between `FP8` and `FP16-mixed` precision was conducted on a single NVIDIA GH200 GPU over 100 training steps to evaluate steady-state throughput. The FP8 test utilised the NVIDIA Transformer Engine to leverage the Hopper architecture’s specialized 8-bit Tensor Cores, which theoretically offers double the mathematical throughput and half the memory traffic compared to 16-bit formats. 
+
+| Metric | FP16 Mixed | FP8 (Transformer Engine) | Difference |
+| :--- | :--- | :--- | :--- |
+| **Average Step Time** | **1.125s** | 1.145s | FP16 is 1.7% Faster |
+| **Training Step (Forward)** | **0.391s** | 0.407s | FP16 is 4.0% Faster |
+| **Backward Pass** | **0.726s** | 0.731s | FP16 is 0.7% Faster |
+| **Training Throughput** | **0.649 s/s** | 0.631 s/s | FP16 is 2.8% Faster |
+| **Dataloader Throughput** | **847.2 s/s** | 764.9 s/s | FP16 is 10.8% Faster |
+
+
+While FP8 is designed to be the high-performance standard for this hardware, the results revealed that for the Anemoi O96 model at this scale, FP16-mixed remains slightly more efficient, providing a roughly 2.8% higher training throughput.
+
+The slight performance lead of FP16-mixed is primarily due to the specific bottlenecks of the Graph Transformer architecture. Because the model is heavily memory-bandwidth bound, the faster math units of FP8 provide diminishing returns when the GPU is already stalled waiting for data from the HBM3 memory. Furthermore, FP8 requires the Grace CPU to manage dynamic scaling factors (AMAX) for every layer, which introduces computational overhead and resulted in a noticeable 10% drop in dataloader throughput compared to the FP16 run. Consequently, while FP8 remains the superior choice for scaling much larger models, FP16 (or BF16) mixed precision paired with `torch.compile` currently represents the optimal performance-to-stability "sweet spot" for this specific configuration on Isambard-AI.
+
+*   **The "Memory Wall":** The primary bottleneck for both configurations remains the massive data movement required by the Graph Transformer Mappers. Moving 95GB of activations per pass saturates the 4TB/s HBM3 bandwidth, making it difficult for the faster 8-bit math units in FP8 to provide a significant speedup.
+*   **FP8 Scaling Overhead:** FP8 requires constant calculation of scaling factors to maintain numerical accuracy. This adds a "metadata tax" that consumes both GPU kernels and CPU cycles, which is visible in the slightly increased forward pass time.
+*   **CPU Contention:** The Grace CPU cores are responsible for both the dataloader and managing the FP8 scaling logic. The lower dataloader throughput in the FP8 test suggests that the extra CPU work required by the Transformer Engine is competing for resources with data preparation.
+*   **Kernel Fusion Success:** In both tests, the successful use of `torch.compile` addressed the kernel launch overhead, but the raw size of the 23.4 Tera-op model ensures that memory bandwidth remains the ultimate limiting factor.
+
+
 # TODO List of Next Steps
 
   - [Done] Check NCCL infrastructure
   - [Done] Change the profiling configuration from `simple` to `detailed` to get more granular timing information to see what the GPUs are doing and that they are not idling. 
-  - bf16-mixed (or fp8-mixed if possible).
+  - [Done]bf16-mixed (or fp8-mixed if possible).
   - Enable Fusion: Add fused: True to your Optimizer.
-  - Try Compilation: Use torch.compile.
+  - [Done] Try Compilation: Use torch.compile.
   - Saturate the Bus: If have memory left, increase the Batch Size to 12.
   - Final thought: If do torch.compile and switch to bf16-mixed, "TFLOPS" will go up and "Step Time" will go down because you are finally letting the GPU work on data while it's still in the high-speed cache.
 
