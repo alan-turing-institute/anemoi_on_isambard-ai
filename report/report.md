@@ -2,11 +2,9 @@
 
 ## Introduction
 
-## Setup
+## Initial Scaling Tests
 
-### Initial Scaling Tests
-
-#### O96 Strong Scaling
+### O96 Strong Scaling
 
 We start with baseline experiments to understand how Anemoi scales with different node counts on Isambard-AI. We chose the `O96` setup for these tests, with the results depicted in the following graph. We pretrained the Anemoi model for 2 epochs varying node counts 1, 10, 50, 100, 200, and 500.
 
@@ -34,7 +32,7 @@ Observations:
 
 - The scaling efficiency fundamentally breaks down beyond the 100-node mark. At 200 nodes, the Training Setup Time (275s) is already more than double the Job Training Time (117s), indicating that the system spends far more time preparing for the job than actually executing it. This inefficiency culminates at the 500-node test, where the setup time is nearly eight times longer than the training time. This crossover point demonstrates a critical bottleneck in the workflow, where the cost of coordinating a large number of nodes completely negates the computational benefits, leading to a net loss in overall performance.
 
-#### n320 Strong Scaling
+### n320 Strong Scaling
 
 Following the baseline tests with the `O96` dataset, we repeated the strong scaling experiments using the significantly higher resolution `n320` dataset. The `n320` configuration represents a much heavier computational workload per grid point, which theoretically allows for better parallelisation efficiency as there is more "useful work" to perform on each GPU relative to the communication overhead required between steps.
 
@@ -59,9 +57,9 @@ Observations:
 - Convergence at 200 Nodes: While the Training Setup Time (red line) increases exponentially with node count—rising from 32s to 289s, it does not completely overtake the training time as seen in the `O96` tests. At 200 nodes, the training time (312s) and setup time (289s) are nearly roughly equal.
 - The Overhead Bottleneck: Although setup time has not eclipsed training time, it has become a significant fraction of the total job duration at 200 nodes (accounting for nearly 50% of the active job time). This explains the plateau in the previous scaling plot: even though the GPUs are calculating gradients faster, the time spent initialising the distributed environment prevents any meaningful reduction in total wall-clock time.
 
-### Initial bottle neck investigation
+# Profiling and benchmarking Anemoi Training
 
-## Profiling Anemoi Training
+## Initial multinode profiling results
 
 To gain deeper insights into the performance bottlenecks observed during the scaling tests, we coducted a series of profiling experiments. These profiles aimed to dissect the training process, identifying which components contributed most to the overall execution time and how these contributions changed with varying node counts.
 
@@ -111,9 +109,13 @@ We have carried out the NCCL All-Reduce benchmarks on Isambard-AI across varying
 
 Key observation: network is not the bottleneck: The bandwidth remains stable between 10 nodes (92.7 GB/s) and 50 nodes (91.2 GB/s). This suggests that the "negative scaling" seen in the training runs is **not** caused by network congestion or hardware limits.
 
+## Single GPU
+
+Let's start with 1 gpu to get a baseline of what is happening during training. We run with the `detailed` profiling configuration.
+
 ### Detailed Profiling
 
-Let's start with 1 gpu to get a baseline of what is happening during training. We run with the `detailed` profiling configuration. Let's look at the memory summary first:
+Let's look at the memory summary first:
 
 ```
 Input size (MB): 126.44
@@ -164,9 +166,11 @@ This setting did not change the throughput as the model is Memory-Bandwidth Boun
 
 #### Action 2: Model compilation and Triton
 
-Model compilation via `torch.compile` is an optimisation process that transforms standard PyTorch code into high-performance machine code specifically tuned for the target hardware, in this case, NVIDIA's Grace Hopper GPUs. It works by capturing the model’s computational graph and applying "kernel fusion," a technique that merges multiple sequential operations, such as a Linear layer followed by a GELU activation and a LayerNorm, into a single execution step. 
+Model compilation via `torch.compile` is an optimisation process that transforms standard PyTorch code into high-performance machine code specifically tuned for the target hardware, in this case, NVIDIA's Grace Hopper GPUs. It works by capturing the model’s computational graph and applying "kernel fusion," a technique that merges multiple sequential operations, such as a Linear layer followed by a GELU activation and a LayerNorm, into a single execution step.
 
-This optimisation is powered by **Triton**, a domain-specific compiler and language that allows `torch.compile` to generate highly efficient CUDA kernels directly from Python. By using Triton, the model can keep intermediate data within the GPU's fast on-chip SRAM or L2 cache instead of constantly writing and reading activations from the 120GB HBM3 main memory. 
+The PyTorch Compiler also analyses data dependencies and memory access patterns to rearrange operations in a way that maximises data locality and minimises memory bandwidth usage, fuses many small operations into larger kernels to reduce launch overhead.
+
+Under the hood, The PyTorch Compiler uses TorchDynamo to trace the code, AOT Autograd to optimise gradient computations by capturing the forward and backward passes, and TorchInductor to generate the final code with Triton for GPU execution. This optimisation is powered by **Triton**, a domain-specific compiler and language that allows `torch.compile` to generate highly efficient CUDA kernels directly from Python. By using Triton, the model can keep intermediate data within the GPU's fast on-chip SRAM or L2 cache instead of constantly writing and reading activations from the 120GB HBM3 main memory.
 
 In our case, for a memory-bandwidth bound model like Anemoi, this significantly reduces the traffic on the memory bus, which is often the primary bottleneck on the Grace Hopper architecture.
 
@@ -182,7 +186,9 @@ Observations:
 
 - The profiling results demonstrate the tangible benefits, showing a 10% improvement in total step time (reducing from 1.29s to 1.17s) and an increase in realised math performance to 20 TFLOPS.
 - The resulsts also show a drop in Achieved Occupancy (from 41.8% to 37.0%) alongside the speed increase. This confirms that Triton successfully fused multiple kernels; these fused kernels use more registers per thread to keep data on-chip, which limits the number of active threads but completes the overall batch faster by minimising memory-stalls. While the massive matrix multiplications in the model's mapper layers remain limited by the physical bandwidth of the HBM3 memory, the compilation of the Graph Transformer processor effectively bypassed the "memory wall" for the rest of the architecture, resulting in a more efficient utilisation of the Hopper core.
-
+- Model compilation does introduce some overhead during the initial compilation phase, which can add latency to the first few training steps. However, this one-time cost is quickly amortised over the course of training, especially for large models and long training runs, making it a worthwhile optimisation for sustained performance gains.
+- It is possible to save the compiled artifacts across runs to reduce the compilation overhead on subsequent executions, however, this will be explored in future work.
+ 
 #### Action 3: FP8
 
 The performance comparison between `FP8` and `FP16-mixed` precision was conducted on a single NVIDIA GH200 GPU over 100 training steps to evaluate steady-state throughput. The FP8 test utilised the NVIDIA Transformer Engine to leverage the Hopper architecture’s specialized 8-bit Tensor Cores, which theoretically offers double the mathematical throughput and half the memory traffic compared to 16-bit formats. 
@@ -195,7 +201,6 @@ The performance comparison between `FP8` and `FP16-mixed` precision was conducte
 | **Training Throughput** | **0.649 s/s** | 0.631 s/s | FP16 is 2.8% Faster |
 | **Dataloader Throughput** | **847.2 s/s** | 764.9 s/s | FP16 is 10.8% Faster |
 
-
 While FP8 is designed to be the high-performance standard for this hardware, the results revealed that for the Anemoi O96 model at this scale, FP16-mixed remains slightly more efficient, providing a roughly 2.8% higher training throughput.
 
 The slight performance lead of FP16-mixed is primarily due to the specific bottlenecks of the Graph Transformer architecture. Because the model is heavily memory-bandwidth bound, the faster math units of FP8 provide diminishing returns when the GPU is already stalled waiting for data from the HBM3 memory. Furthermore, FP8 requires the Grace CPU to manage dynamic scaling factors (AMAX) for every layer, which introduces computational overhead and resulted in a noticeable 10% drop in dataloader throughput compared to the FP16 run. Consequently, while FP8 remains the superior choice for scaling much larger models, FP16 (or BF16) mixed precision paired with `torch.compile` currently represents the optimal performance-to-stability "sweet spot" for this specific configuration on Isambard-AI.
@@ -205,19 +210,41 @@ The slight performance lead of FP16-mixed is primarily due to the specific bottl
 *   **CPU Contention:** The Grace CPU cores are responsible for both the dataloader and managing the FP8 scaling logic. The lower dataloader throughput in the FP8 test suggests that the extra CPU work required by the Transformer Engine is competing for resources with data preparation.
 *   **Kernel Fusion Success:** In both tests, the successful use of `torch.compile` addressed the kernel launch overhead, but the raw size of the 23.4 Tera-op model ensures that memory bandwidth remains the ultimate limiting factor.
 
+### NVIDIA Nsight Systems 
+
+While the PyTorch Profiler used in "simple" and "detailed" modes provides valuable insights into which parts of the training loop are slow, it does not reveal the underlying hardware bottlenecks causing these slowdowns. To gain a deeper understanding of the GPU-level performance characteristics, we utilised NVIDIA Nsight Systems, a powerful profiling tool that offers a comprehensive view of GPU activity, memory usage, and kernel execution timelines.
+
+```
+nsys stats 
+```
+
+### TODO: List of Next Steps for Single GPU
+
+  - disable gradient clipping. This can add overhead during the backward pass, especially for large models. The side effect is that gradients may explode, so monitor training stability.
+    - Done. No change.
+  - Enable Fusion: Add fused: True to your Optimizer.
+  - Increase Number of workers in DataLoader to 8 or 16.
+  - Increase Batch Size, i.e. Saturate the Bus: If have memory left, increase the Batch Size to 12.
+  - CUDA Graphs (mode="reduce-overhead") 
+
+## Single Node Multi-GPU
+
+- the Nsight System or HTA timeline view can revieal if NVlink  or infoband/Ethernet is being utilised effectively.
+- Therefore, it is important to trace the communication patterns and see if there are any stalls or delays in the data transfer between GPUs, for example `nccl:all_reduce` and whether they are overlapping with computation.
+
 
 # TODO List of Next Steps
 
   - [Done] Check NCCL infrastructure
   - [Done] Change the profiling configuration from `simple` to `detailed` to get more granular timing information to see what the GPUs are doing and that they are not idling. 
   - [Done]bf16-mixed (or fp8-mixed if possible).
-  - Enable Fusion: Add fused: True to your Optimizer.
   - [Done] Try Compilation: Use torch.compile.
-  - Saturate the Bus: If have memory left, increase the Batch Size to 12.
+
   - Final thought: If do torch.compile and switch to bf16-mixed, "TFLOPS" will go up and "Step Time" will go down because you are finally letting the GPU work on data while it's still in the high-speed cache.
 
 
-  - Also check the `nccl:all_reduce` and whether they are overlapping with computation.
+
+- 
   - Review the Strategy, maybe pipeline parallelism or model parallelism would be better suited than data parallelism for this model architecture.
     -  In your trainer configuration or script
     ```
