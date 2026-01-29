@@ -111,37 +111,60 @@ Key observation: network is not the bottleneck: The bandwidth remains stable bet
 
 ## Single GPU
 
-Let's start with 1 gpu to get a baseline of what is happening during training. We run with the `detailed` profiling configuration.
+### Baseline Profiling
 
-### Detailed Profiling
+We began with a baseline profiling run using the `simple` and `detailed` anemoi profiling configurations on a single NVIDIA GH200 GPU using the O96 dataset for 40 training steps.
 
-Let's look at the memory summary first:
+The time profiler output shows the following key metrics:
 
-```
-Input size (MB): 126.44
-Forward/backward pass size (MB): 95124.44
-Params size (MB): 462.27
-Estimated Total Size (MB): 95713.15
-```
+| Metric | Simple Profile | Detailed Profile | Delta (Time) | Delta (%) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Total Epoch (40 steps) Time** | **39.22 s** | **43.35 s** | +4.13 s | +10.5% |
+| **Avg Batch Time** | 0.97 s | 1.06 s | +0.09 s | +9.2% |
+| **Backward Pass** (Total) | 28.27 s | 28.39 s | +0.12 s | +0.4% |
+| **Forward Pass** (Total) | 10.18 s | 10.37 s | +0.19 s | +1.9% |
+| **Optimizer Step** (Total) | 38.80 s | 42.20 s | **+3.40 s** | +8.8% |
+| **DataLoader Next** (Total) | 0.11 s | 0.30 s | +0.19 s | **+160%** |
 
-The model weights are only 462 MB, while the forward/backward pass uses 95 GB of memory. This indicates that the model is quite large and requires significant memory for activations during training. This means that for every 1 byte of model parameters, we are using approximately 205 bytes of memory for activations during the forward and backward passes. 
+1.  **Profiling Overhead is Significant (~10%):**
+    The "Detailed" configuration adds over 4 seconds of overhead to the epoch. It is not "free" and distorts the total runtime metrics, making the code appear slower than it actually is.
 
-```
-Total params: 231,222,552
-Trainable params: 231,222,552
-Non-trainable params: 0
-Total mult-adds (Units.TERABYTES): 23.42
-```
+2.  **Overhead Concentrated in Optimizer Logic:**
+    The GPU-heavy operations (Forward/Backward) are barely affected (<2% difference). The massive jump in `optimizer_step` time (from 38.8s to 42.2s) suggests the detailed profiler is hooking into CPU-side Python loops—likely instrumenting individual parameter updates or gradient checks—rather than slowing down the CUDA kernels.
 
-The model summary shows 23.42 Tera-operations (Mult-Adds) per pass. For a 231M parameter model, this is an extremely high ratio of compute-to-parameters, caused by the large number of nodes (40,320) and the Graph Transformer's edge-based operations.
+3.  **Backward Pass Dominates Compute:**
+    Regardless of the profile mode, the **Backward Pass** consumes ~72% of the training time (28.27s vs 10.18s for Forward). This ~2.8:1 ratio is the primary bottleneck and suggests the model might be using Activation Checkpointing (trading compute for memory) or has expensive gradient calculations.
 
-With the Average Step Time of ~1.23s, this gives us a compute throughput of approximately 18.7 TFLOPS, whereas the advertised performance of GH200 if using Tensor Cores is FP32 989 TFLOPS per GPU and if not using Tensor cores FP32 67 TFLOPS. 
+4.  **DataLoader Impact:**
+    While the absolute time is small, the "Detailed" profiler causes the data loading time (`train_dataloader_next`) to nearly triple (+160%). This confirms that detailed profiling heavily impacts lightweight Python iterator operations.
 
-https://www.nvidia.com/en-gb/data-center/h100/
 
-Either way, we are significantly below the theoretical peak performance of the hardware.
+The model summary from the detailed profiler shows the following key metrics:
 
-However, the TensorBoard trace shows that the GPU utilisation is very high:
+| Metric | Value | Interpretation |
+| :--- | :--- | :--- |
+| **Model Size** | **231 M** Params (462 MB) | **Small** |
+| **Compute Load** | **23.42** Tera-Multiply-Accumulate or **46.84** Tera-Floating Point operations | **Extremely** high compute density per parameter due to large input grid. |
+| **Memory Footprint** | **95.1** GB | **Critical.** Activations consume ~99% of memory. Requires Activation Checkpointing. |
+| **Architecture** | Graph Transformer | Encoder-Processor-Decoder structure. |
+| **Scale** | 322k / 87k Nodes | Grid inputs vs. Latent processor nodes. |
+
+1.  The model weights are only 462 MB, while the forward/backward pass uses 95 GB of memory. This indicates that the model is quite large and requires significant memory for activations during training. This means that for every 1 byte of model parameters, we are using approximately 205 bytes of memory for activations during the forward and backward passes. 
+
+2. The model summary shows 23.42 Tera-operations (Mult-Adds) per pass. For a 231M parameter model, this is an extremely high ratio of compute-to-parameters, caused by the large number of nodes (40,320) and the Graph Transformer's edge-based operations.
+
+3. Assuming 23.42 Tera-MACs for the Forward pass, and that the standard Backward pass requires double the compute (for weight and input gradients), the baseline computational cost is 3x the Forward pass. However, since `num_chunks` is set to 2, the model utilises activation checkpointing, which forces an additional re-computation of the forward pass during backpropagation.
+This brings the total hardware load to the equivalent of **4** full forward passes per step. Therefore, the realised FLOPs per step are: 4 x 23.42 Tera-MACs x 2 FLOPs/MAC = **187.4 TFLOPs**.
+Using the Average Step Time of 0.97s (simple profile) and 1.06s (detailed profile), we derive a compute throughput of approximately **193 TFLOP/s** and 176 TFLOP/s respectively. Comparing this to the GH200's advertised performance of 1,979 TFLOPs (BF16 Tensor Cores), **we are achieving roughly 9-10% of theoretical peak performance**, which is consistent with a memory-bound workload.
+
+
+# REVIEWED UNTIL HERE
+
+
+
+
+
+The detailed profiler also provides a TensorBoard trace which shows that the GPU utilisation is very high:
 
 ```
 GPU Utilization (from GPU Summary): 92.93%
@@ -214,7 +237,7 @@ The slight performance lead of FP16-mixed is primarily due to the specific bottl
 
 While the PyTorch Profiler used in "simple" and "detailed" modes provides valuable insights into which parts of the training loop are slow, it does not reveal the underlying hardware bottlenecks causing these slowdowns. To gain a deeper understanding of the GPU-level performance characteristics, we utilised NVIDIA Nsight Systems, a powerful profiling tool that offers a comprehensive view of GPU activity, memory usage, and kernel execution timelines.
 
-```
+```bash
 nsys stats 
 ```
 
