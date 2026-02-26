@@ -501,10 +501,10 @@ The table below summarises the cumulative effect of the single-GPU optimisation 
 | Configuration | Avg Batch Time (s) | Training Throughput (samples/s) | Peak Memory | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | **Baseline (eager, batch 8)** | 0.97 | 7.93 | 34.1 GB (36%) | High CPU overhead; 625k kernel launches (~3,130/step); heavy element-wise fragmentation. |
-| **+ Batch size 16** | 1.91 | **7.79 samples/s (-1.8%)** | ~68 GB (72%) | Step time doubles as expected (2× data/step). Negligible throughput decrease (−1.8%) despite 2× memory utilisation confirms the bottleneck is not data starvation. |
-| **+ `torch.compile(model.model)`** | 1.01 | 6.31 | 30.7 GB | ~8.8% steady-state step time reduction (TensorBoard, 40 steps). Net −22% throughput over 200-step run due to validation recompilation overhead (amortised over full training). Fused `aten::copy_` (−54%), `aten::empty_strided` (−57%), `aten::to` (−70%). Memory reduced by 10%. |
-| *↳ Alternative: FP8 (Transformer Engine)* | *1.00 s* | *6.32 samples/s* | *—* | *Training throughput identical to BF16 (<1% difference). CPU contention from AMAX scaling collapses dataloader throughput by 84% (8,899 -> 1,426 samples/s). BF16 chosen as simpler, equally performant option.* |
-| **+ Fused AdamW** | 1.028 | 6.18 | N/A | No additional speedup. Optimizer step is not the bottleneck; runtime is dominated by forward/backward compute kernels. |
+| **+ Batch size 16** | 1.91 | 7.79 (-1.8%) | ~68 GB (72%) | Step time doubles as expected (2× data/step). Negligible throughput decrease (−1.8%) despite 2× memory utilisation confirms the bottleneck is not data starvation. |
+| **+ `torch.compile(model.model)`** | 1.01 (+3.8%) | 6.31 (−22%) | 30.7 GB | ~8.8% steady-state step time reduction (TensorBoard, 40 steps). Net −22% throughput over 200-step run due to validation recompilation overhead (amortised over full training). Fused `aten::copy_` (−54%), `aten::empty_strided` (−57%), `aten::to` (−70%). Memory reduced by 10%. |
+| *↳ Alternative: FP8 (Transformer Engine)* | *1.00 s (+2.8%)* | *6.32 samples/s (−20%)* | *—* | *Training throughput identical to BF16 compiled (<1% difference). CPU contention from AMAX scaling collapses dataloader throughput by 84% (8,899 -> 1,426 samples/s). BF16 chosen as simpler, equally performant option.* |
+| **+ Fused AdamW** | 1.03 s (+6.0%) | 6.18 samples/s (−22%) | N/A | No additional speedup. Optimizer step is not the bottleneck; runtime is dominated by forward/backward compute kernels. |
 
 
 ### Next Steps
