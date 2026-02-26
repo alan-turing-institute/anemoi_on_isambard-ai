@@ -119,14 +119,27 @@ Key observation: network is not the bottleneck: The bandwidth remains stable bet
 
 ### Baseline Profiling
 
+<!-- 
+ simple:
+ /home/u5gd/tomas.u5gd/u5gd_shared/tomas/anemoi_workspace/experiments/2_O96/5_1gpu_profiling/1_baseline/simple
+
+ detailed:
+ /home/u5gd/tomas.u5gd/u5gd_shared/tomas/anemoi_workspace/experiments/2_O96/5_1gpu_profiling/1_baseline/detailed
+ -->
+
 We began with a baseline profiling run using the `simple` and `detailed` anemoi profiling configurations on a single NVIDIA GH200 GPU using the O96 dataset for 40 training steps.
+
+Throughout this report, **Avg Batch Time** is taken from the `run_training_batch` timer in the Anemoi profiler output. This timer wraps each individual training step — the forward pass, backward pass, and optimizer update — and excludes inter-step overhead such as dataloader fetching, validation, and Lightning framework bookkeeping. It is the most precise measure of raw training performance and is used consistently for all comparisons.
+
+**Training Throughput** (samples/s) is derived from the Anemoi profiler's `training_avg_throughput` metric, multiplied by the per-GPU batch size: `samples/s = training_avg_throughput × batch_size`. Unlike `run_training_batch`, `training_avg_throughput` is a wall-clock rate measured over the full training loop and therefore includes inter-step overhead such as dataloader fetching and Lightning bookkeeping. It gives a slightly lower (more conservative) throughput figure than dividing total samples by `run_training_batch` time alone, and better reflects the end-to-end training speed experienced in practice. The default batch size is 8, so `samples/s` is 8× the `training_avg_throughput` (batches/s).
 
 The time profiler output shows the following key metrics:
 
 | Metric | Simple Profile | Detailed Profile | Delta (Time) | Delta (%) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Total Epoch (40 steps) Time** | **39.22 s** | **43.35 s** | +4.13 s | +10.5% |
-| **Avg Batch Time** | 0.97 s | 1.06 s | +0.09 s | +9.2% |
+| **Avg Batch Time** | 0.97 s | 1.06 s | +0.09 s | +8.8% |
+| **Training Throughput** | 7.93 samples/s | 7.01 samples/s | −0.92 samples/s | −11.6% |
 | **Backward Pass** (Total) | 28.27 s | 28.39 s | +0.12 s | +0.4% |
 | **Forward Pass** (Total) | 10.18 s | 10.37 s | +0.19 s | +1.9% |
 | **Optimizer Step** (Total) | 38.80 s | 42.20 s | **+3.40 s** | +8.8% |
@@ -139,7 +152,7 @@ The time profiler output shows the following key metrics:
     The GPU-heavy operations (Forward/Backward) are barely affected (<2% difference). The massive jump in `optimizer_step` time (from 38.8s to 42.2s) suggests the detailed profiler is hooking into CPU-side Python loops, likely instrumenting individual parameter updates or gradient checks, rather than slowing down the CUDA kernels.
 
 3.  **Backward Pass Dominates Compute:**
-    Regardless of the profile mode, the **Backward Pass** consumes ~72% of the training time (28.27s vs 10.18s for Forward). This ~2.8:1 ratio is the primary bottleneck and suggests the model might be using Activation Checkpointing (trading compute for memory) or has expensive gradient calculations. This is consistent with the Anemoi architecture, which uses `num_chunks: 2` for activation checkpointing, effectively doubling the compute required for the backward pass.
+    Regardless of the profile mode, the **Backward Pass** consumes ~72% of the training time (28.27s vs 10.18s for Forward). This ~2.8:1 ratio is the primary bottleneck and suggests the model might be using Activation Checkpointing (trading compute for memory) or has expensive gradient calculations. This is consistent with the Anemoi architecture, which uses `num_chunks: 2` for activation checkpointing, adding approximately one extra forward pass of compute to the backward pass (~50% increase over the standard 2× forward cost), bringing the total backward compute to ~3× the forward — consistent with the observed 2.8:1 ratio.
 
 4.  **DataLoader Impact:**
     While the absolute time is small, the "Detailed" profiler causes the data loading time (`train_dataloader_next`) to nearly triple (+160%). This confirms that detailed profiling heavily impacts lightweight Python iterator operations.
@@ -151,17 +164,17 @@ The model summary from the detailed profiler shows the following key metrics:
 | :--- | :--- | :--- |
 | **Model Size** | **231 M** Params (462 MB) | **Small** |
 | **Compute Load** | **23.42** Tera-Multiply-Accumulate or **46.84** Tera-Floating Point operations | **Extremely** high compute density per parameter due to large input grid. |
-| **Memory Footprint** | **95.1** GB | **Critical.** Activations consume ~99% of memory. Requires Activation Checkpointing. |
+| **Forward/Backward Pass Size** | **95.1** GB (theoretical) | **Critical.** Theoretical activation memory estimated by the model profiler. Actual measured peak is 34.1 GB with `num_chunks: 2` activation checkpointing; without it (`num_chunks: 1`) peak is 61 GB. Activation Checkpointing is therefore required to fit within the GH200's 96 GB HBM3e. |
 | **Architecture** | Graph Transformer | Encoder-Processor-Decoder structure. |
 | **Scale** | 322k / 87k Nodes | Grid inputs vs. Latent processor nodes. |
 
-1.  The model weights are only 462 MB, while the forward/backward pass uses 95 GB of memory. This indicates that the model is quite large and requires significant memory for activations during training. This means that for every 1 byte of model parameters, we are using approximately 205 bytes of memory for activations during the forward and backward passes. 
+1.  The model weights are only 462 MB, while the theoretical forward/backward pass size is 95.1 GB. Despite being a small model by parameter count, the graph-based architecture with 40,320 input nodes generates disproportionately large activations, theoretically requiring approximately 205 bytes of activation memory per byte of model parameters. Activation Checkpointing reduces actual peak usage to 34.1 GB at runtime.
 
 2. The model summary shows 23.42 Tera-operations (Mult-Adds) per pass. For a 231M parameter model, this is an extremely high ratio of compute-to-parameters, caused by the large number of nodes (40,320) and the Graph Transformer's edge-based operations.
 
 3. Assuming 23.42 Tera-MACs for the Forward pass, and that the standard Backward pass requires double the compute (for weight and input gradients), the baseline computational cost is 3x the Forward pass. However, since `num_chunks` is set to 2, the model utilises activation checkpointing, which forces an additional re-computation of the forward pass during backpropagation.
 This brings the total hardware load to the equivalent of **4** full forward passes per step. Therefore, the realised FLOPs per step are: 4 x 23.42 Tera-MACs x 2 FLOPs/MAC = **187.4 TFLOPs**.
-Using the Average Step Time of 0.97s (simple profile) and 1.06s (detailed profile), we derive a compute throughput of approximately **193 TFLOP/s** and 176 TFLOP/s respectively. Comparing this to the GH200's advertised performance of 1,979 TFLOPs (BF16 Tensor Cores), **we are achieving roughly 9-10% of theoretical peak performance**, which is consistent with a memory-bound workload.
+Using the Average Batch Time of 0.97s (simple profile) and 1.06s (detailed profile), we derive a compute throughput of approximately **193 TFLOP/s** and 176 TFLOP/s respectively. The GH200's BF16 Tensor Core peak is quoted in two ways: **989 TFLOP/s (dense)** and **1,979 TFLOP/s (sparse, with structured sparsity enabled)**. Since this model does not use structured sparsity, the dense figure is the correct baseline. Comparing against 989 TFLOP/s, **we are achieving roughly ~20% of theoretical peak performance**, which is consistent with a memory-bound workload. The sparse figure would give a misleadingly low ~10%, as the hardware cannot exploit that headroom without explicit sparsity support in the model.
 
 
 The **detailed** profiler also provides a TensorBoard trace which provides additional profiling information.
@@ -180,7 +193,16 @@ Average Step Time: 1,290,933 us
 - GPU Utilisation of 92.81% indicates that the GPU is busy executing work for the vast majority of the training step. This rules out data loading starvation or CPU-side Python lag as the primary bottlenecks. The GPU is the constraint.
 - Est. SM Efficiency of 90.84% indicates that Streaming Multiprocessors (SMs) have at least one active warp most of the time they are scheduled. This does not mean that all SMs are doing calculations, just that they are active, for example they could be waiting for memory.
 - Est. Achieved Occupancy of 41.92% indicates that less than half of the theoretical maximum number of warps are active on the SMs at any given time. This suggests that there are limitations, such as registers, shared memory, or memory stalls preventing higher occupancy.
-- The step time of 1.29 seconds is significantly higher than the simple profile (0.97s) and detailed profile (1.06s) step times. This is due to profiling overhead.
+- The TensorBoard step time of 1.29 s is best understood as the outermost layer of a stack of progressively wider measurements, each adding more overhead:
+
+  | Measure | Step Time | What it includes |
+  | :--- | :--- | :--- |
+  | `run_training_batch` (simple) | 0.97 s | Core forward/backward/optimizer only |
+  | `run_training_batch` (detailed) | 1.06 s | + detailed profiler instrumentation |
+  | `1 / training_avg_throughput` (detailed) | 1.14 s | + inter-step overhead (dataloader, Lightning bookkeeping) |
+  | TensorBoard step time | 1.29 s | + TensorBoard trace capture overhead |
+
+  None of these are directly interchangeable; each measures a different scope of work.
 
 This indicates that the GPU is being well utilised, but there are bottlenecks preventing it from reaching higher occupancy, which usually points to memory bandwidth limitations.
 
@@ -200,7 +222,7 @@ In the Anemoi architecture, the `num_chunks` parameter is the primary mechanism 
 > Removing Activation Checkpointing (setting `num_chunks: 1`), makes the peak memory usage jump to 61GB, but the step time remains roughly the same (1.05s vs 1.06s). Going in the other direction, increasing checkpointing to `num_chunks: 16` reduces peak memory to 33GB, but changes memory usage pattern, where the peak memory usage appears only once at the start of the step, and then remains at much lower levels for the rest of the step. This is because with `num_chunks: 16`, the model processes each layer individually, freeing memory immediately after each layer's backward pass, rather than waiting until the end of the entire forward pass.
 > **This indicates that while activation checkpointing effectively manages memory usage, it does not significantly impact the overall training speed for this model configuration, as the bottleneck lies elsewhere**.
 
-This headroom motivated doubling the batch size from 8 to 16, explored in Action 1. The result was a modest +10% throughput improvement (7.0 → 7.7 samples/s), confirming that while memory utilisation doubled to ~72%, the GPU was already partially saturated at batch 8 and the bottleneck lies in the compute layers rather than memory capacity.
+This headroom motivated doubling the batch size from 8 to 16, explored in Action 1. Simple profiling shows a negligible −1.8% change (7.93 -> 7.79 samples/s), while detailed profiling shows +10% (7.01 -> 7.71 samples/s) — the latter is inflated because the detailed profiler's fixed overhead is relatively smaller for larger batches, making BS16 appear more efficient than it is. The simple profiler result is more representative: doubling the batch size provides no meaningful throughput gain, confirming the GPU was already partially saturated at batch 8 and the bottleneck lies in compute rather than memory capacity.
 
 #### TensorBoard trace: Operator View
 
@@ -226,33 +248,68 @@ This view also provides a breakdown of the time spent in various kernel types:
 - The flash Kernels (used for attention mechanisms) account for approximately 25% of the time.
 - `flash_fwd_kernel` is called 2x more often than `flash_bwd_kernel`, this proves that `num_chunks: 2` activation checkpointing is active, as the forward pass needs to be re-computed during the backward pass.
 
+### Hardware Efficiency
+
+The previously identified four GPU efficiency metrics describe this memory-bound workload from different vantage points, and are mutually consistent:
+
+| Metric | Value | What it measures |
+| :--- | :--- | :--- |
+| GPU Utilisation | 92.81% | Fraction of step time the GPU is executing *any* kernel — confirms no data starvation or CPU-side stalls. |
+| Est. SM Efficiency | 90.84% | Fraction of scheduled SM time where at least one warp is active — confirms SMs are rarely idle. |
+| Est. Achieved Occupancy | 41.92% | Fraction of the *theoretical maximum* number of concurrent warps that are actually active — less than half, indicating register or memory pressure limits warp parallelism. |
+| Tensor Core Utilisation | ~1.1% | Fraction of kernel execution time spent in Tensor Core operations (dense MatMul/Attention) — 98.9% of GPU time is spent on memory-bound element-wise operations instead. |
+| Model FLOP Utilisation (MFU) | ~20% | Achieved TFLOP/s (193) vs. GH200 dense BF16 peak (989 TFLOP/s) — only 20% of peak compute throughput, consistent with a memory-bandwidth bound regime. |
+
+> [!IMPORTANT]
+> These metrics are mutually consistent, not contradictory. High GPU utilisation (92.81%) confirms the GPU is never idle; low Tensor Core utilisation (~1.1%) explains why MFU is only ~20% — nearly all of that active time is spent on memory-bound element-wise kernels rather than the dense matrix operations that Tensor Cores accelerate. The GPU is working continuously, but on the wrong type of work to exploit peak compute throughput. The optimisation actions that follow target precisely this gap: reducing kernel fragmentation and memory movement to shift more execution time towards compute-intensive operations.
+
+
 ### Action 1: Batch Size Increase
 
-As noted earlier, the current batch size of `8` only utilises ~36% of the available GPU memory (34.1 GB used out of 95.0 GB total). Given that the model is memory-bandwidth bound, increasing the batch size should help saturate the memory bus and improve GPU utilisation. We increased `dataloader.batch_size.training` from `8` to `16` and compared performance over 40 training steps using the `detailed` profiling configuration.
+As noted earlier, the current batch size of `8` only utilises ~36% of the available GPU memory (34.1 GB used out of 95.0 GB total). Given that the model is memory-bandwidth bound, increasing the batch size should help saturate the memory bus and improve GPU utilisation. We increased `dataloader.batch_size.training` from `8` to `16` and compared performance over 40 training steps using the `simple` and `detailed` profiling configuration.
+
+`simple` profiling results:
 
 | Metric | Batch Size 8 | Batch Size 16 | Change |
 | :--- | :--- | :--- | :--- |
-| **Avg Step Time** | 1.06 s | 1.99 s | +1.88x (expected) |
-| **Training Throughput** | 0.877 batches/s | 0.482 batches/s | — |
-| **Training Throughput** | **7.0 samples/s** | **7.7 samples/s** | **+10%** |
+| **Avg Batch Time** | 0.97 s | 1.91 s | +1.97x |
+| **Training Throughput** | **7.93 samples/s** | **7.79 samples/s** | **−1.8%** |
+
+`detailed` profiling results:
+
+| Metric | Batch Size 8 | Batch Size 16 | Change |
+| :--- | :--- | :--- | :--- |
+| **Avg Batch Time** | 1.06 s | 1.99 s | +1.88x (expected) |
+| **Training Throughput** | **7.01 samples/s** | **7.71 samples/s** | **+10%** |
 | **Peak Memory** | 34.1 GB (36%) | ~68 GB (~72%) | +2x |
 
 Observations:
 
-- The per-step time nearly doubled (1.88x), which is expected — each step processes twice as many samples. The meaningful metric is throughput in **samples/s**, which improved by ~10% (7.0 → 7.7 samples/s). Equivalently, processing the same 320 samples takes 43.3 s at batch 8 versus 39.8 s at batch 16, an 8% wall-clock saving for the same amount of training work.
+- The per-step time nearly doubled (1.88x under detailed profiling), which is expected — each step processes twice as many samples. The meaningful metric is throughput in **samples/s**. Simple profiling (more representative) shows a negligible **−1.8%** change (7.93 -> 7.79 samples/s); detailed profiling shows **+10%** (7.01 -> 7.71 samples/s). The +10% figure is inflated because the detailed profiler's fixed overhead is proportionally smaller for larger batches — the simple result is the more reliable indicator. For multi-GPU runs, throughput is further multiplied by the number of GPUs to give total throughput.
 
 - Peak memory utilisation doubled from 36% to ~72% of the 95 GB available, confirming the roughly linear memory scaling with batch size. There is no evidence of memory-bound degradation in this range.
 
-- The modest throughput gain (+10%) relative to the large increase in memory utilisation (+100%) confirms that the model was not purely starved of data at batch size 8. The GPU was already partially saturated, and doubling the batch size provided only a marginal benefit. This is consistent with the finding that the bottleneck is in the compute and communication layers rather than in memory bandwidth alone.
+- The absence of a meaningful throughput gain (−1.8% under simple profiling) relative to the large increase in memory utilisation (+100%) confirms that the model was not starved of data at batch size 8. The GPU was already partially saturated, and doubling the batch size provided no real benefit. This is consistent with the finding that the bottleneck lies in the compute kernels rather than memory capacity.
 
 
 ### Action 2: Increase the number of workers in the DataLoader
 
-Following the batch size increase, we tested whether data loading was a bottleneck by varying `dataloader.num_workers.training` across 8, 16, and 32 workers. All runs used batch size 16 and the `simple` profiling configuration over 40 training steps. The switch from `detailed` to `simple` profiling accounts for the slight reduction in baseline step time compared to Action 1 (1.91 s vs. 1.99 s), consistent with the ~5% profiling overhead established in the Baseline Profiling section.
+<!-- 
+8 workers:
+/home/u5gd/tomas.u5gd/u5gd_shared/tomas/anemoi_workspace/experiments/2_O96/5_1gpu_profiling/3_batch_s/simple
+
+16 workers:
+/home/u5gd/tomas.u5gd/u5gd_shared/tomas/anemoi_workspace/experiments/2_O96/5_1gpu_profiling/4_dataloader/simple_bs16_16w
+
+32 workers:
+/home/u5gd/tomas.u5gd/u5gd_shared/tomas/anemoi_workspace/experiments/2_O96/5_1gpu_profiling/4_dataloader/simple_bs16_32w
+ -->
+
+Following the batch size increase, we tested whether data loading was a bottleneck by varying `dataloader.num_workers.training` across 8, 16, and 32 workers. All runs used batch size 16 and the `simple` profiling configuration over 40 training steps.
 
 | Metric | 8 Workers | 16 Workers | 32 Workers |
 | :--- | :--- | :--- | :--- |
-| **Avg Step Time** | 1.91 s | 1.92 s | 1.95 s |
+| **Avg Batch Time** | 1.91 s | 1.92 s | 1.95 s |
 | **Training Throughput** | 7.79 samples/s | 7.95 samples/s | 7.72 samples/s |
 | **vs. 8 Workers** | Baseline | +2.1% | −0.8% |
 
@@ -283,21 +340,22 @@ Under the hood, The PyTorch Compiler uses TorchDynamo to trace the code, AOT Aut
 
 Given the observations from the TensorBoard traces, specifically the high overhead of Python-level operations (`aten::to`, `aten::copy_`) and the memory-bound nature of the workload, we hypothesised that Just-In-Time (JIT) compilation using `torch.compile` would provide a speedup. The goal was to fuse element-wise kernels (reducing memory bandwidth pressure) and eliminate Python overhead. To isolate the effect of compilation from the batch size change in Action 1, these experiments were run at the original batch size of 8.
 
-We compared the standard "eager" mode against `torch.compile` over 200 training steps using the Anemoi simple profiler.
+We compared the standard "eager" mode against `torch.compile` over 200 training steps using the Anemoi `simple` profiler.
 
 | Metric | Eager Mode | Compiled | Change |
 | :--- | :--- | :--- | :--- |
+| **Avg Batch Time** | 0.98 s | 1.01 s | +3.8% (recompilation overhead) |
 | **Backward Pass** | 0.710 s | 0.691 s | **−2.7%** |
 | **Forward Pass** | 0.259 s | 0.315 s | *Inconclusive due to re-compilation noise* |
 | **Validation Step** | 0.321 s | 3.813 s | **+1,087%** (recompilation overhead) |
-| **Training Throughput** | 1.005 steps/s | 0.788 steps/s | **−22%** |
+| **Training Throughput** | 8.04 samples/s | 6.31 samples/s | **−22%** |
 | **Total Wall Time** | 236 s | 274 s | **+16%** |
 
 **Observations:**
 
 1.  **Modest Gains in Backward Pass:** The compiler successfully optimised the backward pass, reducing the time by ~2.7%. This is consistent with Triton fusing element-wise activation gradient operations identified in the TensorBoard trace.
 2.  **Limited Impact on Graph/Attention Layers:** The speedup is not drastic. This is expected because the Anemoi model relies heavily on `FlashAttention` and sparse graph operations. `FlashAttention` is already highly optimised; `torch.compile` cannot optimise it further. The compiler mostly cleaned up the code between these heavy layers.
-3.  **Validation Step Recompilation:** The validation step degraded dramatically (0.321 s → 3.813 s average over 6 calls). This is because `torch.compile` traces a separate computation graph for each new input shape or code path. When the training loop switches to validation mode, PyTorch encounters a new graph signature and triggers a full recompilation. With only 6 validation calls in the 200-step run, even 1–2 recompilation events dominate the average, resulting in a net negative outcome overall (−22% throughput, +16% wall time).
+3.  **Validation Step Recompilation:** The validation step degraded dramatically (0.321 s -> 3.813 s average over 6 calls). This is because `torch.compile` traces a separate computation graph for each new input shape or code path. When the training loop switches to validation mode, PyTorch encounters a new graph signature and triggers a full recompilation. With only 6 validation calls in the 200-step run, even 1–2 recompilation events dominate the average, resulting in a net negative outcome overall (−22% throughput, +16% wall time).
 4.  **Net Result Over 200 Steps is Negative:** The recompilation overhead was not amortised within the 200-step window. This does not mean compilation is not beneficial — it means the warm-up cost is significant, particularly for the validation path. Over a full training run of thousands of steps the cost is amortised, and the steady-state per-step benefit is better captured by the detailed profiling below.
 5.  It is possible to save the compiled artifacts across runs to reduce the compilation overhead on subsequent executions, however, this will be explored in future work.
 
@@ -313,14 +371,14 @@ tensorboard --logdir /home/u5gd/tomas.u5gd/u5gd_shared/tomas/anemoi_workspace/ex
 
 To isolate steady-state compiled performance from recompilation noise, we followed up with a detailed TensorBoard profiling run of 40 steps in both Eager and Compiled modes. Unlike the 200-step simple profiler run above — which was dominated by validation recompilation overhead — this run was designed to capture the stable, post-warmup execution profile.
 
-*   **Execution Speed:** `torch.compile` reduced the average step time from **1.29s to 1.18s** (an 8.8% improvement). This gain was driven almost entirely by a **~117ms reduction** in raw kernel execution time.
+*   **Execution Speed:** `torch.compile` reduced the average step time reported by TensorBoard trace: GPU and Execution Summary from **1.29s to 1.18s** (an 8.5% improvement). This gain was driven almost entirely by a **~117ms reduction** in raw kernel execution time.
 *   **The Occupancy Trade-off:** We observed a counter-intuitive drop in GPU occupancy (41.9% $\to$ 37.1%), while GPU utilisation remained high throughout (92.81% $\to$ 91.75%). This is a characteristic of **Triton kernels**, which use more registers to keep data local to the compute units. By trading thread parallelism for data locality, the model reduces slow global memory round-trips, processing data faster despite having fewer active warps.
-*   **Operator Fusion:** The Operator View confirms a dramatic reduction in element-wise operator calls. `aten::copy_` dropped from **6,750 → 3,075** (−54%), `aten::empty_strided` from **6,765 → 2,900** (−57%), and `aten::to` from **5,155 → 1,535** (−70%). By fusing these thousands of small memory operations into a few "Compiled Regions," the CPU dispatch overhead was substantially reduced.
+*   **Operator Fusion:** The Operator View confirms a dramatic reduction in element-wise operator calls. `aten::copy_` dropped from **6,750 -> 3,075** (−54%), `aten::empty_strided` from **6,765 -> 2,900** (−57%), and `aten::to` from **5,155 -> 1,535** (−70%). By fusing these thousands of small memory operations into a few "Compiled Regions," the CPU dispatch overhead was substantially reduced.
 *   **Memory Efficiency:** Peak memory usage dropped by **10%** (34.2 GB $\to$ 30.7 GB). While the model still follows a "sawtooth" pattern due to activation checkpointing, the compiled version manages intermediate buffers more efficiently, providing more headroom for larger batch sizes.
 *   **Hardware Bottlenecks:** Despite these gains, Tensor Core utilisation remained stagnant at **~1.2%**. This confirms that the model is strictly **memory-bandwidth bound**; the GPU spends the vast majority of its time moving data rather than performing dense math.
 
 **Conclusion:**
-`torch.compile` provides a measurable steady-state performance boost through kernel fusion — reducing per-step GPU execution time by ~8.8% and peak memory footprint by ~10%. The GPU was already highly utilised in eager mode (92.81%) and remained so after compilation (91.75%), confirming the GPU was not idle between kernel launches. The gain came from eliminating thousands of redundant small memory operations (`aten::copy_`, `aten::empty_strided`, `aten::to`), reducing total data movement and CPU dispatch overhead.
+`torch.compile` provides a measurable steady-state performance boost through kernel fusion — reducing per-step GPU execution time by ~8.5% and peak memory footprint by ~10%. The GPU was already highly utilised in eager mode (92.81%) and remained so after compilation (91.75%), confirming the GPU was not idle between kernel launches. The gain came from eliminating thousands of redundant small memory operations (`aten::copy_`, `aten::empty_strided`, `aten::to`), reducing total data movement and CPU dispatch overhead.
 
 However, the short-run (200-step) simple profiler results tell a different story: overall throughput *dropped* by 22% and wall time *increased* by 16%. The culprit is recompilation overhead on the validation path — when the training loop switches to eval mode, `torch.compile` encounters a new graph signature and must retrace, inflating the average validation step from 0.321 s to 3.813 s over only 6 calls. This warm-up cost is a one-time expense per process; over a full training run of tens of thousands of steps it is fully amortised. Caching compiled artefacts across runs (via `torch._dynamo.config`) can eliminate this overhead entirely on subsequent executions.
 
@@ -340,10 +398,10 @@ The performance comparison between `FP8` and `BF16-mixed` precision was conducte
 
 | Metric | BF16 Mixed | FP8 (Transformer Engine) | Difference |
 | :--- | :--- | :--- | :--- |
-| **Training Batch Time** | 1.026 s | **0.997 s** | FP8 is **2.8% faster** |
+| **Avg Batch Time** | 1.026 s | **0.997 s** | FP8 is **2.8% faster** |
 | **Forward Pass** | 0.314 s | 0.316 s | ~Equal |
 | **Backward Pass** | 0.705 s | **0.676 s** | FP8 is **4.0% faster** |
-| **Training Throughput** | 0.783 steps/s | **0.790 steps/s** | ~Equal (<1%) |
+| **Training Throughput** | 6.27 samples/s | **6.32 samples/s** | ~Equal (<1%) |
 | **Dataloader Throughput** | **8,899 samples/s** | 1,426 samples/s | FP8 is **84% slower** |
 | **Total Wall Time** | **264 s** | 273 s | FP8 is 3.4% slower |
 
@@ -408,7 +466,12 @@ The tripling of Device-to-Device (D2D) memory movement is expected and intention
 
 With the CPU overhead eliminated, we tested a further round of hardware-level tuning, i.e. enabling the Fused AdamW optimizer.
 
-**Result: total wall-clock time was unchanged** at ~150 seconds for 200 steps.
+| Metric | Compiled (BF16) | Fused AdamW | Change |
+| :--- | :--- | :--- | :--- |
+| **Avg Batch Time** | 1.026 s | 1.028 s | +0.1% |
+| **Training Throughput** | 6.27 samples/s | 6.18 samples/s | −1.3% |
+
+**Result: no improvement.** Avg batch time and training throughput are statistically unchanged (within noise).
 
 This confirms that the optimizer step is not a meaningful bottleneck. The wall-clock time is entirely dominated by the forward and backward compute kernels (`nvjet_hsh`, FlashAttention, graph indexing), which are so large that shaving a few milliseconds off the weight update has no measurable impact on total step time.
 
@@ -433,16 +496,19 @@ The `nvjet` kernel share here (~36%) differs from the 40–50% reported in the T
 
 The table below summarises the cumulative effect of the single-GPU optimisation steps on the Grace Hopper (GH200) architecture. Step times in the main optimisation path (rows 1, 3, 4, 5) are from nsys at batch size 8 without the Anemoi profiling wrapper, which explains the lower baseline step time (~0.77 s) compared to the 0.97 s reported in the Baseline Profiling section. The FP8 branch row uses Anemoi simple profiler times (batch size 8, compiled) for direct comparison with Action 4 data. Peak VRAM reflects values from TensorBoard profiler runs where available.
 
-| Configuration | Avg Step Time | Throughput | Peak Memory | Notes |
+> **Profiling note:** *Avg Batch Time* and *Training Throughput* are taken from the `simple` profiler (Anemoi's lightweight timer). *Peak Memory* is taken from the `detailed` profiler (PyTorch TensorBoard profiler / nsys). Both are used because memory statistics are only available under `detailed` profiling, but `detailed` profiling itself adds significant overhead — it serialises kernel launches and inflates step times, so it does not represent real training performance. `simple` profiling imposes negligible overhead and is therefore used for all timing and throughput figures.
+
+| Configuration | Avg Batch Time (s) | Training Throughput (samples/s) | Peak Memory | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Baseline (eager, batch 8)** | ~0.77 s | 7.0 samples/s | 34.1 GB (36%) | High CPU overhead; 625k kernel launches (~3,130/step); heavy element-wise fragmentation. |
-| **+ Batch size 16** | ~1.99 s | **7.7 samples/s (+10%)** | ~68 GB (72%) | Step time doubles as expected (2× data/step). Modest throughput gain despite 2× memory utilisation confirms the bottleneck is not data starvation. |
-| **+ `torch.compile(model.model)`** | ~0.74 s | — | 30.7 GB | ~8.8% steady-state step time reduction (TensorBoard, 40 steps). Net −22% throughput over 200-step run due to validation recompilation overhead (amortised over full training). Fused `aten::copy_` (−54%), `aten::empty_strided` (−57%), `aten::to` (−70%). Memory reduced by 10%. |
-| *↳ Alternative: FP8 (Transformer Engine)* | *1.00 s* | *0.790 steps/s* | *—* | *Training throughput identical to BF16 (<1% difference). CPU contention from AMAX scaling collapses dataloader throughput by 84% (8,899 → 1,426 samples/s). BF16 chosen as simpler, equally performant option.* |
+| **Baseline (eager, batch 8)** | 0.97 | 7.93 | 34.1 GB (36%) | High CPU overhead; 625k kernel launches (~3,130/step); heavy element-wise fragmentation. |
+| **+ Batch size 16** | 1.91 | **7.79 samples/s (-1.8%)** | ~68 GB (72%) | Step time doubles as expected (2× data/step). Negligible throughput decrease (−1.8%) despite 2× memory utilisation confirms the bottleneck is not data starvation. |
+| **+ `torch.compile(model.model)`** | 1.01 | 6.31 | 30.7 GB | ~8.8% steady-state step time reduction (TensorBoard, 40 steps). Net −22% throughput over 200-step run due to validation recompilation overhead (amortised over full training). Fused `aten::copy_` (−54%), `aten::empty_strided` (−57%), `aten::to` (−70%). Memory reduced by 10%. |
+| *↳ Alternative: FP8 (Transformer Engine)* | *1.00 s* | *6.32 samples/s* | *—* | *Training throughput identical to BF16 (<1% difference). CPU contention from AMAX scaling collapses dataloader throughput by 84% (8,899 -> 1,426 samples/s). BF16 chosen as simpler, equally performant option.* |
 | **+ Fused AdamW** | ~0.75 s | — | N/A | No additional speedup. Optimizer step is not the bottleneck; runtime is dominated by forward/backward compute kernels. |
 | **Final (Compiled + GH200 tuned)** | **~0.75 s** | — | **~31 GB** | No software bottlenecks. GPU continuously engaged; ceiling is HBM3 memory bandwidth (low Tensor Core utilisation inherent to graph/attention arithmetic intensity). Ready for multi-node scaling. |
 
-#### Next Steps
+
+### Next Steps
 
 The nsys breakdown identified two remaining cost centres that were not addressed in this work and represent the most promising targets for further single-GPU optimisation:
 
@@ -452,22 +518,3 @@ The nsys breakdown identified two remaining cost centres that were not addressed
 
 ## Single Node Multi-GPU Scaling
 
-With the single GPU investigated, the focus shifts to validating distributed training efficiency. The key questions are whether compute-bound single-GPU performance is preserved as GPU count increases, and where the communication overhead ceiling lies, within the 4-GPU node.
-
-### TODO
-
-- **Single-node multi-GPU profiling:** Profile a 4-GPU run on a single GH200 node using nsys to verify that NVLink is being fully utilised and that NCCL `all_reduce` operations overlap with computation rather than serialising it.
-
-
-
-# BEYOND THIS POINT TEXT IS NOT REVIEWED
-
-## Multi-Node Scaling
-
-### TODO
-
-- **Multi-node nsys profiling:** Extend the nsys analysis to 10 and 50-node runs. Cross-reference the NCCL benchmarking results (which showed stable bandwidth at these scales) against actual training to confirm whether communication overhead is the new bottleneck.
-
-- **Gradient accumulation:** Accumulating gradients over multiple micro-batches before performing an `all_reduce` reduces the frequency of inter-node synchronisation. This can improve communication efficiency at large node counts, at the cost of increased memory usage per step.
-
-- **Distributed strategy review:** The current DDPGroupStrategy may not be optimal for the Graph Transformer architecture. Pipeline parallelism or tensor parallelism could reduce per-step communication volume by partitioning the model across nodes rather than replicating it.
