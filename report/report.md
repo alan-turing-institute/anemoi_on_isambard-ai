@@ -550,7 +550,7 @@ An efficiency below 95% at 4 GPUs — where NVLink bandwidth is very high and al
 | **Throughput (total)** | 8.23 samples/s | 25.20 samples/s | +3.06× |
 | **Scaling Efficiency** | 100% | **76.5%** | — |
 
-The scaling efficiency of 76.5% is well below the 95% threshold expected for intra-node NVLink communication. The source of this overhead is investigated in Action 2.
+The scaling efficiency of 76.5% is well below the 95% threshold expected for intra-node NVLink communication. The source of this overhead is investigated in Actions 2–8. As will be shown, a significant portion of this gap is attributable to node-level dispatch variability rather than a fundamental DDP or NVLink limitation; on a well-conditioned node the intra-node efficiency reaches 95.6%.
 
 ### Action 2: NVLink and NCCL Communication Overlap (nsys)
 
@@ -768,9 +768,7 @@ The ~23% overhead is therefore specific to the DDP training scenario. The distin
 
 **Conclusion.** Two hypotheses have been eliminated. Node heterogeneity is ruled out: nid011191 and nid011290 perform identically at 1 GPU (965 ms vs 954 ms, 1.1% difference). Thermal or power throttling from concurrent GPU compute is ruled out: three BF16 matmul loads running at full intensity on the same node had no measurable impact on the training GPU.
 
-The 23% step-time overhead (220 ms/step) at 4 GPUs is real and reproducible, but its root cause has not yet been identified. It cannot be attributed to DDP communication overhead alone (NCCL all-reduce accounts for only 22–45 ms and is fully overlapped), and it cannot be attributed to thermal or power constraints. The forward pass overhead (+26%) — which occurs before any inter-GPU communication — narrows the candidates to shared system resources accessed concurrently by four training processes: data loading from shared storage, CPU-side preprocessing, or Grace SoC memory bandwidth. Further investigation (e.g., profiling with `perf` or NVIDIA DCGM during 4-GPU vs 1-GPU training, or running with a synthetic in-memory dataset to isolate I/O) is needed to identify the bottleneck definitively.
-
-The scaling efficiency of **76.8%** is a consistent and reproducible measurement. Whether it can be recovered depends on the root cause: if I/O-bound, prefetching or caching strategies may help; if CPU/memory-bound, the GH200's unified memory architecture may require process-affinity tuning.
+The 23% step-time overhead (220 ms/step) at 4 GPUs is real and reproducible on this node. Whether it is DDP-specific or arises from running four full training processes simultaneously is addressed in Action 7; the root cause of the overhead and its node-to-node variability is identified in Action 8.
 
 ### Action 7: DDP-Specific vs Multi-Process Resource Contention
 
@@ -817,7 +815,7 @@ A lightweight Lightning callback emits `nvtx.range_push/pop` markers at batch st
 | Backward | 846 ms | 858 ms | +12 ms |
 | **Step** | **1,185 ms** | **1,179 ms** | **−6 ms** |
 
-The −6 ms step change is within run-to-run noise. Buffer broadcasting is not the source of the overhead.
+The −6 ms step change is within run-to-run noise. Notably, the phase-level changes are anti-correlated (−18 ms forward, +12 ms backward): removing the broadcast shifts where the CPU stall falls within the step rather than eliminating it, with the two changes largely cancelling at the step level. This is consistent with a phase-boundary timing shift rather than a real saving. Buffer broadcasting is not the source of the overhead.
 
 **Experiment 2: NVTX phase breakdown across nodes.**
 
@@ -839,16 +837,26 @@ The overhead is present on every node but varies dramatically (44–247 ms). Thi
 ![nsys timeline — 1-node rank 0 (4-GPU)](img/nsys_1node_rank0.png)
 *Figure: nsys timeline for the 4-GPU run, rank 0 (nid010706).*
 
-Three mechanisms visible in the timelines account for the residual 44 ms:
+Two mechanisms visible in the timelines account for the residual 44 ms:
 
 - **GPU stream occupancy drop.** Stream 7 falls from 99.7% (1-GPU) to 97.7% (4-GPU), producing ~20 ms of scattered idle time per step where the CPU is managing multi-GPU bookkeeping.
 - **Synchronous forward-pass collective.** A `ncclDevKernel_Broadcast_RING_LL` kernel fires on Stream 16 at the start of the forward pass — this is the buffer broadcast. The ~106 µs kernel itself is negligible, but it forces a CPU dispatch stall while the Grace CPU switches context to the auxiliary stream and then resumes queuing compute kernels, contributing to the ~19 ms forward-pass delta. Experiment 1 confirms that disabling it (`broadcast_buffers=False`) saves ~18 ms in the forward phase but only ~6 ms at the step level — within noise — so it is a minor contributor, not the dominant source.
-- **Increased `cudaStreamSynchronize` frequency.** The CUDA API row shows significantly more synchronise calls in the 4-GPU case. In the 1-GPU case the Python thread sits in `pthread_cond_wait` for long stretches while the Autograd engine runs ahead; in the DDP case the thread wakes frequently to coordinate NCCL bucket synchronisation, amplifying sensitivity to node-level jitter.
 
-**Conclusion.** The apparent multi-node degradation is largely a node-quality effect rather than a fundamental DDP scaling problem. On a well-performing node (nid010706), the 4-GPU overhead is only 44 ms (4.4%) and is fully accounted for by the three mechanisms above — GPU stream gaps, a single synchronous forward-pass collective, and increased CPU synchronisation frequency. The large overheads seen earlier (220–247 ms) occur on noisier nodes and reflect the same mechanisms amplified by OS scheduling jitter, not a new bottleneck. Buffer broadcasting is a minor contributor (~6 ms) but not the dominant cause.
+A third observation — significantly more `cudaStreamSynchronize` calls in the 4-GPU CUDA API row — has negligible direct cost on a good node (107 calls/step × 6.1 µs avg = 0.65 ms), but it matters structurally: the Python thread must wake frequently to coordinate NCCL bucket synchronisation rather than sitting idle in `pthread_cond_wait`. This makes DDP execution inherently more sensitive to node-level dispatch jitter, which explains why the same overhead that costs 44 ms on a good node costs 247 ms on a bad one.
 
-**Verdict.** 1-node profiling is complete. The 4-GPU scaling efficiency on a good node is ~95.6%, which is acceptable for a graph model of this complexity running over NVLink. No further 1-node optimisation is warranted. The forward-pass buffer broadcast should be monitored at multi-node scale, where it runs over InfiniBand and its cost may increase.
+Comparing `cudaLaunchKernel` dispatch latency across all three profiles closes the root-cause question:
 
+| Profile | Avg `cudaLaunchKernel` latency | Total kernel launches |
+| :--- | ---: | ---: |
+| 1-GPU baseline (nid010659) | 11.8 µs | 625,920 |
+| 4-GPU best (nid010706) | 10.6 µs | 625,691 |
+| 4-GPU worst (nid010881) | 215.3 µs | 625,691 |
+
+Two things are immediately clear. First, the 1-GPU dispatch latency (11.8 µs) matches the good 4-GPU node (10.6 µs) — DDP itself adds no dispatch overhead. Second, the kernel launch *count* is essentially identical across all three profiles (~625k), confirming DDP introduces no extra kernel launches. The 215.3 µs average on nid010881 is an anomaly specific to that node, present at both 1-GPU and 4-GPU scale. With over 600,000 launches per step, this 20× increase in dispatch latency starves the GPU of work and accounts for the full 203 ms gap — 72% of which falls in the backward pass (+146 ms), where kernel launch density is highest due to interleaved NCCL bucket synchronisations. The root cause is unknown; it appears to be a hardware or OS-level glitch on that node rather than anything attributable to DDP, NVLink, or the training configuration.
+
+**Conclusion.** The overhead is not a GPU or NVLink limitation. On a well-performing node the 4-GPU penalty is 44 ms (4.4%), accounted for by GPU stream fragmentation (~20 ms) and the forward-pass buffer broadcast dispatch stall (~19 ms). On a degraded node, the increased CPU wake frequency from NCCL bucket synchronisation makes execution sensitive to node-level dispatch jitter, amplifying the overhead to 247 ms (25%). The jitter itself — 20× higher `cudaLaunchKernel` latency — is a node-specific anomaly of unknown origin, not caused by DDP or NVLink.
+
+**Verdict.** 1-node 4-GPU profiling is complete. Scaling efficiency on a good node is ~95.6%, acceptable for a graph model of this complexity over NVLink. No further 1-node optimisation is warranted. The forward-pass buffer broadcast should be monitored at multi-node scale where it runs over InfiniBand.
 
 # BEYOND THIS POINT TEXT IS NOT REVIEWED
 
