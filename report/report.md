@@ -852,11 +852,153 @@ Comparing `cudaLaunchKernel` dispatch latency across all three profiles closes t
 | 4-GPU best (nid010706) | 10.6 µs | 625,691 |
 | 4-GPU worst (nid010881) | 215.3 µs | 625,691 |
 
-Two things are immediately clear. First, the 1-GPU dispatch latency (11.8 µs) matches the good 4-GPU node (10.6 µs) — DDP itself adds no dispatch overhead. Second, the kernel launch *count* is essentially identical across all three profiles (~625k), confirming DDP introduces no extra kernel launches. The 215.3 µs average on nid010881 is an anomaly specific to that node, present at both 1-GPU and 4-GPU scale. With over 600,000 launches per step, this 20× increase in dispatch latency starves the GPU of work and accounts for the full 203 ms gap — 72% of which falls in the backward pass (+146 ms), where kernel launch density is highest due to interleaved NCCL bucket synchronisations. The root cause is unknown; it appears to be a hardware or OS-level glitch on that node rather than anything attributable to DDP, NVLink, or the training configuration.
+Two things are immediately clear. First, the 1-GPU dispatch latency (11.8 µs) matches the good 4-GPU node (10.6 µs) — DDP itself adds no dispatch overhead. Second, the kernel launch *count* is essentially identical across all three profiles (~625k), confirming DDP introduces no extra kernel launches. The 215.3 µs average on nid010881 is an anomaly specific to that node, present at both 1-GPU and 4-GPU scale. With over 600,000 launches per step, this 20× increase in dispatch latency starves the GPU of work and accounts for the full 203 ms gap — 72% of which falls in the backward pass (+146 ms), where kernel launch density is highest due to interleaved NCCL bucket synchronisations. The likely culprit is `CUDA_LAUNCH_BLOCKING=1` being set in the environment on the affected node — either inherited from a previous job, set in a system profile, or present in a user's shell configuration. This environment variable forces every CUDA kernel launch to be synchronous: the CPU stalls until each kernel completes before queuing the next, turning what should be ~11 µs async dispatches into blocking waits that scale with kernel duration. With 625,000 launches per step the aggregate cost is substantial. This should be confirmed by inspecting the environment of affected nodes.
 
-**Conclusion.** The overhead is not a GPU or NVLink limitation. On a well-performing node the 4-GPU penalty is 44 ms (4.4%), accounted for by GPU stream fragmentation (~20 ms) and the forward-pass buffer broadcast dispatch stall (~19 ms). On a degraded node, the increased CPU wake frequency from NCCL bucket synchronisation makes execution sensitive to node-level dispatch jitter, amplifying the overhead to 247 ms (25%). The jitter itself — 20× higher `cudaLaunchKernel` latency — is a node-specific anomaly of unknown origin, not caused by DDP or NVLink.
+**Conclusion.** The overhead is not a GPU or NVLink limitation. On a well-performing node the 4-GPU penalty is 44 ms (4.4%), accounted for by GPU stream fragmentation (~20 ms) and the forward-pass buffer broadcast dispatch stall (~19 ms). On a degraded node, `CUDA_LAUNCH_BLOCKING=1` (or equivalent synchronous dispatch) forces every kernel launch to block, and the increased CPU wake frequency from NCCL bucket synchronisation amplifies this into 247 ms (25%) of step overhead. Ensuring `CUDA_LAUNCH_BLOCKING` is unset in the job environment is a prerequisite for reproducible performance.
 
-**Verdict.** 1-node 4-GPU profiling is complete. Scaling efficiency on a good node is ~95.6%, acceptable for a graph model of this complexity over NVLink. No further 1-node optimisation is warranted. The forward-pass buffer broadcast should be monitored at multi-node scale where it runs over InfiniBand.
+**Verdict.** 1-node 4-GPU profiling is complete. Scaling efficiency on a good node is ~95.6%, acceptable for a graph model of this complexity over NVLink. The node-to-node variability (4.4%–25% overhead) is likely caused by `CUDA_LAUNCH_BLOCKING=1` leaking into the job environment on affected nodes — this should be explicitly unset in all job scripts. The forward-pass buffer broadcast should be monitored at multi-node scale where it runs over InfiniBand.
+
+## 2-Node Scaling
+
+<!--
+1 gpu:
+/home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/6_1gpu_profiling/2_baseline_nsys/simple_200_perf_nvtx
+
+1 node:
+/home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/2_bseline_nsys/simple_200_perf_nvtx
+
+2 nodes:
+/home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/8_2nodes_profiling/2_baseline_nsys/simple_200_perf_nvtx
+-->
+
+### Action 1: Establish 2-Node Throughput Baseline
+
+`CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` were explicitly unset before this run. The 1-node section identified synchronous kernel dispatch as the likely cause of the node-to-node variability; this run confirms it and establishes a clean 2-node baseline.
+
+**Per-step scaling** (NVTX, 200 steps):
+
+| Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 1-node → 2-node |
+| :--- | ---: | ---: | ---: | ---: |
+| Forward | 267 ms | 280 ms | 291 ms | +11 ms |
+| Backward | 710 ms | 743 ms | 746 ms | +3 ms |
+| **Step** | **984 ms** | **1,033 ms** | **1,046 ms** | **+13 ms** |
+| `cudaLaunchKernel` avg | 11.7 µs | 10.3 µs | 10.4 µs | Consistent |
+| **Scaling efficiency** | 100% | **95.2%** | **94.1%** | — |
+
+- **`CUDA_LAUNCH_BLOCKING` was the culprit.** With it removed, 2-node efficiency is 94.1% and step time 1,046 ms. The `cudaLaunchKernel` latency is consistent at ~10–11 µs across all scales, confirming the Grace CPU manages 8-GPU distributed state as efficiently as a single GPU when async execution is not blocked.
+- **Slingshot adds almost no per-step overhead.** Moving from 1 node to 2 nodes costs only 13 ms (+1.3%). The backward increases by just 3 ms — NCCL successfully overlaps inter-node all-reduce with gradient computation. The buffer broadcast adds 11 ms in the forward pass.
+- **Total DDP tax from 1 GPU to 8 GPUs is 62 ms (6.3%)** with the environment correctly configured.
+
+**Startup overhead** (measured from first log timestamp to first training step):
+
+| Configuration | Startup time | vs 1-GPU |
+| :--- | ---: | ---: |
+| 1-GPU | 19.8 s | — |
+| 4-GPU (1 node) | 27.8 s | +8.0 s (+40%) |
+| 8-GPU (2 nodes) | 32.3 s | +12.5 s (+63%) |
+
+Startup time grows faster than node count — NCCL process group initialisation and model broadcast across ranks dominate this cost. At 2 nodes, 32 s is negligible relative to any real training run, but the trend is steep and needs to be monitored at 10 and 50 nodes where it may become a meaningful fraction of total job time (as seen in the initial O96 scaling tests where setup reached 1,000 s at 200 nodes).
+
+**Verdict.** Per-step scaling at 2 nodes is efficient (94.1%). Ensuring `CUDA_LAUNCH_BLOCKING` is absent from all job scripts is the single most impactful configuration requirement. Startup overhead is currently small but growing — it should be tracked alongside step time at larger node counts.
+
+### Action 2: Decomposing Startup Overhead
+
+**Goal:** Identify which phase of the startup sequence is responsible for the growing initialisation cost (19.8 s → 27.8 s → 32.3 s from 1-GPU to 1-node to 2-node).
+
+The startup window spans several distinct phases that are not individually visible in the Anemoi simple profiler output: Python imports and Hydra config loading, model and data module initialisation, NCCL process group initialisation, model weight broadcast from rank 0, Lightning trainer setup, and the first forward pass (which triggers `torch.compile`). Each of these may scale differently with GPU and node count.
+
+**Method.** A lightweight Lightning callback (`experiments/diagnostics/callbacks/startup_timer.py`) emits a timestamped log line at each key hook from rank 0 only, reporting both elapsed time from callback instantiation (T0) and the delta from the previous hook:
+
+```
+[STARTUP] setup (model + data ready)          elapsed=  8.123s  delta=  8.123s
+[STARTUP] on_fit_start                        elapsed=  9.441s  delta=  1.318s
+[STARTUP] on_train_start                      elapsed= 12.205s  delta=  2.764s
+[STARTUP] first batch start                   elapsed= 19.814s  delta=  7.609s
+[STARTUP] first batch end (compile done)      elapsed= 87.432s  delta= 67.618s
+```
+
+The callback is registered via `diagnostics.callbacks` in the Hydra config and requires no changes to `train.py`. It is run at 1-GPU, 1-node, and 2-node with identical configuration; the phase whose `delta` grows between scales is the bottleneck.
+
+The most likely candidates in order of probability:
+1. **NCCL process group init** — grows with rank count and requires cross-node network probing at 2+ nodes.
+2. **Model weight broadcast** — DDP synchronises 462 MB of weights from rank 0 to all ranks at startup; intra-node this uses NVLink, inter-node it crosses Slingshot.
+3. **`torch.compile`** — per-process compilation; multiple ranks compiling simultaneously may contend for Grace CPU resources.
+4. **Dataset/zarr open** — multiple ranks opening the same Lustre files concurrently may cause I/O contention.
+
+| Phase | What happens | 1-GPU | 1-node | 2-node |
+| :--- | :--- | ---: | ---: | ---: |
+| **T0 → setup** | imports, Hydra config, model + data init | 11.2 s | 12.7 s | 12.0 s |
+| **setup → on_fit_start** | Lightning trainer init | 0.5 s | 0.3 s | 0.5 s |
+| **on_fit_start → on_train_start** | NCCL process group init, DDP setup | 4.6 s | 4.6 s | 4.7 s |
+| **on_train_start → first batch start** | gradient bucket alloc, data prefetch | 1.4 s | 3.6 s | 4.1 s |
+| **first batch start → first batch end** | first forward + backward (NCCL warmup) | 1.2 s | 1.2 s | 2.7 s |
+| **Total (T0 to ready)** | | **18.9 s** | **22.5 s** | **24.0 s** |
+
+Three things stand out:
+
+- **NCCL init scales well** — the `on_fit_start → on_train_start` phase is consistent at ~4.6–4.7 s across all three configurations. Adding GPUs and crossing the InfiniBand boundary adds no meaningful overhead here.
+- **First batch is slower at 2-node** — 1.2 s at 1-GPU and 1-node, but 2.7 s at 2-node. There is no `torch.compile` in this configuration, so the extra 1.5 s is likely NCCL first-use warmup: the initial all-reduce over InfiniBand triggers channel setup, algorithm selection, and path discovery that intra-node NVLink does not require.
+- **Gradient bucket allocation grows with GPU count** — 1.4 s → 3.6 s → 4.1 s. This phase allocates DDP gradient buffers across all ranks and roughly triples from 1-GPU to 1-node, then grows marginally to 2-node. It is the dominant contributor to the startup gap between 1-GPU and distributed runs.
+
+**Caveat.** These timings are from single runs and fluctuate noticeably between jobs, as seen in the earlier total startup measurements (19.8 s, 27.8 s, 32.3 s vs the 18.9 s, 22.5 s, 24.0 s captured here). The values should not be read as precise linear scaling factors. The table is most useful for identifying which phases are consistently slow across runs — NCCL init and gradient bucket allocation stand out as the hotspots — rather than for quantifying exact scaling coefficients.
+
+### Action 3: 10-Node Throughput and Startup Baseline
+
+**Goal:** Establish whether the 94.1% per-step efficiency observed at 2 nodes holds at 10 nodes, and whether startup overhead grows significantly with node count.
+
+10 nodes is the first scale at which three things can be assessed together: (1) whether the Slingshot all-reduce cost remains hidden by the backward pass as NCCL scales from 2 to 10 nodes; (2) whether the gradient bucket allocation startup cost (~4 s at 2 nodes) grows linearly with rank count or plateaus; and (3) whether the NCCL first-use warmup on the first batch extends beyond the ~2.7 s seen at 2 nodes. This node count also directly corresponds to the existing NCCL benchmark data (92.7 GB/s at 10 nodes), allowing the actual training all-reduce cost to be compared against the theoretical network ceiling.
+
+**Per-step scaling** (NVTX, 200 steps, batch 8 per GPU):
+
+| Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) |
+| :--- | ---: | ---: | ---: | ---: |
+| Forward (inferred) | 267 ms | 280 ms | 291 ms | ~285 ms |
+| Backward | 710 ms | 743 ms | 746 ms | 737 ms |
+| **Step (median)** | **984 ms** | **1,033 ms** | **1,046 ms** | **1,033 ms** |
+| Step (min) | — | — | — | 1,003 ms |
+| **Scaling efficiency** | 100% | 95.2% | 94.1% | **95.2%** |
+
+The 10-node median step time is 1,033 ms — essentially identical to the 1-node baseline (1,033 ms) and 13 ms faster than 2-node (1,046 ms). Scaling efficiency vs 1-GPU is 95.2%, matching the 1-node result and marginally better than 2-node, confirming that Slingshot all-reduce cost scales benignly from 8 to 40 GPUs for this workload.
+
+NCCL overlap is confirmed by the GPU kernel breakdown. `ncclDevKernel_AllReduce_Sum_f32_RING_LL` accounts for 288 ms of GPU kernel time per step (20.6% of total GPU time) across approximately 29 gradient bucket all-reduces per step. With the backward NVTX wall time at 737 ms median, NCCL runs concurrently with compute kernels throughout the backward pass and adds zero measurable overhead to the critical path. NCCL uses RING_LL for large gradient tensors and TREE_LL for scalar aggregations (loss values, gradient norm); both are invoked every step. The NCCL benchmark ceiling of 92.7 GB/s at 10 nodes is consistent with this: the all-reduce completes within the backward window and is not on the critical path.
+
+The first-batch 16.9 s is decomposed in the GPU kernel trace. A single `ncclDevKernel_AllReduce_Sum_u32_TREE_LL` instance accounts for 11.07 s, representing NCCL's one-time tree topology negotiation and channel warmup across 40 ranks. The first gradient all-reduce (`ncclDevKernel_AllReduce_Sum_f32_RING_LL` max = 3.67 s) accounts for most of the remaining overhead. After the first step, the RING_LL median drops to 7.1 ms per invocation — a 500× speedup, confirming the 16.9 s is warmup-only.
+
+The optimizer step is consistent at 10.7 ms median, with a single first-step outlier at 3.6 s — gradient norm all-reduce warmup: `clip_grad_norm_` performs a global all-reduce of squared gradient norms, also subject to first-use NCCL overhead on the first step.
+
+`cudaStreamSynchronize` dominates the CUDA API trace at 85.8% of API time (27,473 calls, ~137 per step). This reflects the per-bucket synchronisation pattern in DDP and is consistent with the 2-node profile; it is not a bottleneck.
+
+**Verdict.** Per-step scaling at 10 nodes (40 GPUs) is 95.2% efficient, equal to the 1-node baseline and slightly better than 2-node. The Slingshot network successfully hides the all-reduce cost within the backward pass at this scale. The single remaining concern is the 46 s startup time, driven by the 16.9 s first-batch NCCL warmup — a one-time cost per job that is negligible for production runs but significant for short debugging jobs.
+
+**Simple profiler** (complementary to nsys):
+
+| Metric | Value | Notes |
+| :--- | ---: | :--- |
+| `training_step` (forward + loss) | 317 ms avg | Wider scope than NVTX `:forward`; includes loss computation |
+| `backward` | 747 ms avg | Consistent with nsys (737 ms median) |
+| `run_training_batch` avg | 1,197 ms | Skewed by 16.9 s first batch; steady-state avg ~1,118 ms |
+| `training_avg_throughput` | 0.719 batches/s | Includes inter-step overhead; 1/0.719 = 1.39 s end-to-end |
+| `avg_training_dataloader_throughput` | 7,697 samples/s | vs 5.75 samples/s consumed — 1,300× headroom |
+
+The dataloader is unambiguously not a bottleneck at 10 nodes. The gap between `run_training_batch` (1.197 s avg) and the end-to-end step rate (1.39 s) reflects Lightning framework overhead and validation interspersed between training steps.
+
+| Phase | What happens | 1-GPU | 1-node | 2-node | 10-node |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| **T0 → setup** | imports, model + data init | 11.2 s | 12.7 s | 12.0 s | 18.0 s |
+| **setup → on_fit_start** | Lightning trainer init | 0.5 s | 0.3 s | 0.5 s | 2.8 s |
+| **on_fit_start → on_train_start** | NCCL process group init, DDP setup | 4.6 s | 4.6 s | 4.7 s | 6.8 s |
+| **on_train_start → first batch start** | gradient bucket alloc, data prefetch | 1.4 s | 3.6 s | 4.1 s | 1.8 s |
+| **first batch start → first batch end** | first forward + backward (NCCL warmup) | 1.2 s | 1.2 s | 2.7 s | 16.9 s |
+| **Total (T0 to ready)** | | **18.9 s** | **22.5 s** | **24.0 s** | **46.2 s** |
+
+The 10-node results reveal a qualitative change in startup behaviour:
+
+- **First-batch NCCL warmup dominates at 10 nodes — 16.9 s.** The first backward pass triggers the first all-reduce across 40 GPUs over Slingshot. NCCL performs ring topology negotiation, channel warmup, and algorithm selection on this initial collective, a cost that grows with node count. At 2 nodes this was 2.7 s; at 10 nodes it is 16.9 s. This is a one-time cost per job — step 2 starts 4 ms after step 1 ends. For long training runs it is negligible, but for short debugging runs (20–50 steps) it is significant.
+- **T0 → setup grows to 18 s (+6 s vs 2-node).** The most likely cause is the initial model weight broadcast (462 MB) from rank 0 to 39 other ranks over Slingshot, which scales with the number of recipients and their topology distance.
+- **Lightning trainer init (setup → on_fit_start) grows to 2.8 s**, up from 0.3–0.5 s at 1–2 nodes. This may reflect additional distributed graph construction or Lightning internal checks scaling with world size.
+- **NCCL process group init remains manageable — 6.8 s**, modest growth from 4.7 s at 2 nodes.
+
+Total startup nearly doubles from 24 s (2-node) to 46 s (10-node), driven almost entirely by the first-batch NCCL warmup.
 
 # BEYOND THIS POINT TEXT IS NOT REVIEWED
 
