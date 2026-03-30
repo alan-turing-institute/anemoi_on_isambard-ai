@@ -1,0 +1,1325 @@
+Running Isambard-AI Audit on: nid011163
+
+======================================================================
+ 1. PYTHON & CUDA DRIVER ENVIRONMENT
+======================================================================
+Verifying runtime Python version and SLURM allocation context.
+
+[94m[INFO][0m Python version: 3.11.15
+Running Isambard-AI Audit on: nid011163
+
+======================================================================
+ 1. PYTHON & CUDA DRIVER ENVIRONMENT
+======================================================================
+Verifying runtime Python version and SLURM allocation context.
+
+[94m[INFO][0m Python version: 3.11.15
+Running Isambard-AI Audit on: nid011163
+
+======================================================================
+ 1. PYTHON & CUDA DRIVER ENVIRONMENT
+======================================================================
+Verifying runtime Python version and SLURM allocation context.
+
+[94m[INFO][0m Python version: 3.11.15
+Running Isambard-AI Audit on: nid011163
+
+======================================================================
+ 1. PYTHON & CUDA DRIVER ENVIRONMENT
+======================================================================
+Verifying runtime Python version and SLURM allocation context.
+
+[94m[INFO][0m Python version: 3.11.15
+[94m[INFO][0m torch=2.6.0+cu126 | cuda=12.6 | nccl=2.21.5
+
+--- SLURM Allocation ---
+[92m[OK][0m SLURM_JOB_ID                       : 3462325
+[92m[OK][0m SLURM_NNODES                       : 1
+[92m[OK][0m SLURM_NTASKS                       : 4
+[93m[WARN][0m SLURM_GPUS_PER_TASK                : UNSET (Expected: Set)
+
+--- Distributed Training ---
+[93m[WARN][0m MASTER_ADDR                        : UNSET (Expected: Set)
+[93m[WARN][0m MASTER_PORT                        : UNSET (Expected: Set)
+[93m[WARN][0m WORLD_SIZE                         : UNSET (Expected: Set)
+[93m[WARN][0m RANK                               : UNSET (Expected: Set)
+[93m[WARN][0m LOCAL_RANK                         : UNSET (Expected: Set)
+
+--- CUDA Visibility ---
+[92m[OK][0m CUDA_VISIBLE_DEVICES               : 0,1,2,3
+
+--- CPU Threading ---
+[92m[OK][0m OMP_NUM_THREADS                    : 16
+[92m[OK][0m MKL_NUM_THREADS                    : 16
+
+--- Library Paths ---
+[94m[INFO][0m LD_LIBRARY_PATH set (8 entries)
+[92m[OK][0m  HF_HOME/TRANSFORMERS_CACHE         : /projects/u6fw/tomas/.cache
+[94m[INFO][0m torch=2.6.0+cu126 | cuda=12.6 | nccl=2.21.5
+
+--- SLURM Allocation ---
+[92m[OK][0m SLURM_JOB_ID                       : 3462325
+[92m[OK][0m SLURM_NNODES                       : 1
+[92m[OK][0m SLURM_NTASKS                       : 4
+[93m[WARN][0m SLURM_GPUS_PER_TASK                : UNSET (Expected: Set)
+
+--- Distributed Training ---
+[93m[WARN][0m MASTER_ADDR                        : UNSET (Expected: Set)
+[93m[WARN][0m MASTER_PORT                        : UNSET (Expected: Set)
+[93m[WARN][0m WORLD_SIZE                         : UNSET (Expected: Set)
+[93m[WARN][0m RANK                               : UNSET (Expected: Set)
+[93m[WARN][0m LOCAL_RANK                         : UNSET (Expected: Set)
+
+--- CUDA Visibility ---
+[92m[OK][0m CUDA_VISIBLE_DEVICES               : 0,1,2,3
+
+--- CPU Threading ---
+[92m[OK][0m OMP_NUM_THREADS                    : 16
+[92m[OK][0m MKL_NUM_THREADS                    : 16
+
+--- Library Paths ---
+
+--- NVIDIA Driver ---
+[94m[INFO][0m torch=2.6.0+cu126 | cuda=12.6 | nccl=2.21.5
+
+--- SLURM Allocation ---
+[92m[OK][0m SLURM_JOB_ID                       : 3462325
+[92m[OK][0m SLURM_NNODES                       : 1
+[92m[OK][0m SLURM_NTASKS                       : 4
+[93m[WARN][0m SLURM_GPUS_PER_TASK                : UNSET (Expected: Set)
+
+--- Distributed Training ---
+[93m[WARN][0m MASTER_ADDR                        : UNSET (Expected: Set)
+[93m[WARN][0m MASTER_PORT                        : UNSET (Expected: Set)
+[93m[WARN][0m WORLD_SIZE                         : UNSET (Expected: Set)
+[93m[WARN][0m RANK                               : UNSET (Expected: Set)
+[93m[WARN][0m LOCAL_RANK                         : UNSET (Expected: Set)
+
+--- CUDA Visibility ---
+[92m[OK][0m CUDA_VISIBLE_DEVICES               : 0,1,2,3
+
+--- CPU Threading ---
+[92m[OK][0m OMP_NUM_THREADS                    : 16
+[92m[OK][0m MKL_NUM_THREADS                    : 16
+
+[94m[INFO][0m torch=2.6.0+cu126 | cuda=12.6 | nccl=2.21.5
+
+--- SLURM Allocation ---
+[92m[OK][0m SLURM_JOB_ID                       : 3462325
+[92m[OK][0m SLURM_NNODES                       : 1
+[92m[OK][0m SLURM_NTASKS                       : 4
+[93m[WARN][0m SLURM_GPUS_PER_TASK                : UNSET (Expected: Set)
+
+--- Distributed Training ---
+[93m[WARN][0m MASTER_ADDR                        : UNSET (Expected: Set)
+[93m[WARN][0m MASTER_PORT                        : UNSET (Expected: Set)
+[93m[WARN][0m WORLD_SIZE                         : UNSET (Expected: Set)
+[93m[WARN][0m RANK                               : UNSET (Expected: Set)
+[93m[WARN][0m LOCAL_RANK                         : UNSET (Expected: Set)
+
+--- CUDA Visibility ---
+[94m[INFO][0m LD_LIBRARY_PATH set (8 entries)
+[92m[OK][0m  HF_HOME/TRANSFORMERS_CACHE         : /projects/u6fw/tomas/.cache
+
+--- NVIDIA Driver ---
+--- Library Paths ---
+[94m[INFO][0m LD_LIBRARY_PATH set (8 entries)
+[92m[OK][0m  HF_HOME/TRANSFORMERS_CACHE         : /projects/u6fw/tomas/.cache
+
+--- NVIDIA Driver ---
+[92m[OK][0m CUDA_VISIBLE_DEVICES               : 0,1,2,3
+
+--- CPU Threading ---
+[92m[OK][0m OMP_NUM_THREADS                    : 16
+[92m[OK][0m MKL_NUM_THREADS                    : 16
+
+--- Library Paths ---
+[94m[INFO][0m LD_LIBRARY_PATH set (8 entries)
+[92m[OK][0m  HF_HOME/TRANSFORMERS_CACHE         : /projects/u6fw/tomas/.cache
+
+--- NVIDIA Driver ---
+[92m[OK][0m GPU 0: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 1: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 2: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 3: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+
+======================================================================
+ 2. NETWORK & SLINGSHOT COMPLIANCE
+======================================================================
+Verifying against Isambard docs and Playbook 'Internode Communication'.
+
+[92m[OK][0m NCCL_NET                           : AWS Libfabric
+[92m[OK][0m NCCL_SOCKET_IFNAME                 : hsn
+[92m[OK][0m NCCL_CROSS_NIC                     : 1
+[92m[OK][0m NCCL_NET_GDR_LEVEL                 : PHB
+[92m[OK][0m NCCL_GDRCOPY_ENABLE                : 1
+[93m[WARN][0m NCCL_ALGO                          : UNSET (Expected: Set)
+[93m[WARN][0m NCCL_PROTO                         : UNSET (Expected: Set)
+[93m[WARN][0m CUDA_DEVICE_MAX_CONNECTIONS        : UNSET (Expected: 1)
+
+--- Slingshot / Libfabric (FI) Tuning ---
+[92m[OK][0m FI_CXI_RDZV_PROTO                  : alt_read
+[92m[OK][0m FI_MR_CACHE_MONITOR                : userfaultfd
+[92m[OK][0m FI_HMEM_CUDA_USE_GDRCOPY           : 1
+[92m[OK][0m FI_CXI_DISABLE_HOST_REGISTER       : 1
+[92m[OK][0m FI_CXI_DEFAULT_CQ_SIZE             : 131072
+[92m[OK][0m FI_CXI_DISABLE_NON_INJECT_MSG_IDC  : 1
+
+======================================================================
+ 3. HARDWARE & COMPUTE CAPABILITY
+======================================================================
+Playbook Ref: 'Verify kernels are compiled for the right hardware generation'
+
+[92m[OK][0m GPU 0: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 1: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 2: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 3: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+
+======================================================================
+ 2. NETWORK & SLINGSHOT COMPLIANCE
+======================================================================
+Verifying against Isambard docs and Playbook 'Internode Communication'.
+
+[92m[OK][0m NCCL_NET                           : AWS Libfabric
+[92m[OK][0m NCCL_SOCKET_IFNAME                 : hsn
+[92m[OK][0m NCCL_CROSS_NIC                     : 1
+[92m[OK][0m NCCL_NET_GDR_LEVEL                 : PHB
+[92m[OK][0m NCCL_GDRCOPY_ENABLE                : 1
+[93m[WARN][0m NCCL_ALGO                          : UNSET (Expected: Set)
+[93m[WARN][0m NCCL_PROTO                         : UNSET (Expected: Set)
+[93m[WARN][0m CUDA_DEVICE_MAX_CONNECTIONS        : UNSET (Expected: 1)
+
+--- Slingshot / Libfabric (FI) Tuning ---
+[92m[OK][0m FI_CXI_RDZV_PROTO                  : alt_read
+[92m[OK][0m FI_MR_CACHE_MONITOR                : userfaultfd
+[92m[OK][0m FI_HMEM_CUDA_USE_GDRCOPY           : 1
+[92m[OK][0m FI_CXI_DISABLE_HOST_REGISTER       : 1
+[92m[OK][0m FI_CXI_DEFAULT_CQ_SIZE             : 131072
+[92m[OK][0m FI_CXI_DISABLE_NON_INJECT_MSG_IDC  : 1
+
+======================================================================
+ 3. HARDWARE & COMPUTE CAPABILITY
+======================================================================
+Playbook Ref: 'Verify kernels are compiled for the right hardware generation'
+
+[92m[OK][0m GPU 0: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 1: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 2: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 3: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+
+======================================================================
+ 2. NETWORK & SLINGSHOT COMPLIANCE
+======================================================================
+Verifying against Isambard docs and Playbook 'Internode Communication'.
+
+[92m[OK][0m NCCL_NET                           : AWS Libfabric
+[92m[OK][0m NCCL_SOCKET_IFNAME                 : hsn
+[92m[OK][0m GPU 0: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 1: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 2: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m GPU 3: NVIDIA GH200 120GB, 565.57.01, 97871 MiB
+[92m[OK][0m NCCL_CROSS_NIC                     : 1
+[92m[OK][0m NCCL_NET_GDR_LEVEL                 : PHB
+[92m[OK][0m NCCL_GDRCOPY_ENABLE                : 1
+[93m[WARN][0m NCCL_ALGO                          : UNSET (Expected: Set)
+[93m[WARN][0m NCCL_PROTO                         : UNSET (Expected: Set)
+[93m[WARN][0m CUDA_DEVICE_MAX_CONNECTIONS        : UNSET (Expected: 1)
+
+--- Slingshot / Libfabric (FI) Tuning ---
+[92m[OK][0m FI_CXI_RDZV_PROTO                  : alt_read
+[92m[OK][0m FI_MR_CACHE_MONITOR                : userfaultfd
+[92m[OK][0m FI_HMEM_CUDA_USE_GDRCOPY           : 1
+[92m[OK][0m FI_CXI_DISABLE_HOST_REGISTER       : 1
+[92m[OK][0m FI_CXI_DEFAULT_CQ_SIZE             : 131072
+[92m[OK][0m FI_CXI_DISABLE_NON_INJECT_MSG_IDC  : 1
+
+======================================================================
+ 2. NETWORK & SLINGSHOT COMPLIANCE
+======================================================================
+Verifying against Isambard docs and Playbook 'Internode Communication'.
+
+
+======================================================================
+ 3. HARDWARE & COMPUTE CAPABILITY
+======================================================================
+Playbook Ref: 'Verify kernels are compiled for the right hardware generation'
+
+[92m[OK][0m NCCL_NET                           : AWS Libfabric
+[92m[OK][0m NCCL_SOCKET_IFNAME                 : hsn
+[92m[OK][0m NCCL_CROSS_NIC                     : 1
+[92m[OK][0m NCCL_NET_GDR_LEVEL                 : PHB
+[92m[OK][0m NCCL_GDRCOPY_ENABLE                : 1
+[93m[WARN][0m NCCL_ALGO                          : UNSET (Expected: Set)
+[93m[WARN][0m NCCL_PROTO                         : UNSET (Expected: Set)
+[93m[WARN][0m CUDA_DEVICE_MAX_CONNECTIONS        : UNSET (Expected: 1)
+
+--- Slingshot / Libfabric (FI) Tuning ---
+[92m[OK][0m FI_CXI_RDZV_PROTO                  : alt_read
+[92m[OK][0m FI_MR_CACHE_MONITOR                : userfaultfd
+[92m[OK][0m FI_HMEM_CUDA_USE_GDRCOPY           : 1
+[92m[OK][0m FI_CXI_DISABLE_HOST_REGISTER       : 1
+[92m[OK][0m FI_CXI_DEFAULT_CQ_SIZE             : 131072
+[92m[OK][0m FI_CXI_DISABLE_NON_INJECT_MSG_IDC  : 1
+
+======================================================================
+ 3. HARDWARE & COMPUTE CAPABILITY
+======================================================================
+Playbook Ref: 'Verify kernels are compiled for the right hardware generation'
+
+[94m[INFO][0m 4 GPU(s) detected:
+
+  GPU 0: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 1: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 2: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 3: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+
+--- CUDA Architecture Compilation ---
+[94m[INFO][0m cuobjdump: /opt/nvidia/hpc_sdk/Linux_aarch64/24.11/cuda/12.6/bin/cuobjdump
+[92m[OK][0m  torch               : compiled archs [sm_50, sm_80, sm_86, sm_89, sm_90, sm_90a]
+[94m[INFO][0m 4 GPU(s) detected:
+
+[94m[INFO][0m 4 GPU(s) detected:
+
+  GPU 0: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 1: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 2: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 3: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+
+--- CUDA Architecture Compilation ---
+[94m[INFO][0m cuobjdump: /opt/nvidia/hpc_sdk/Linux_aarch64/24.11/cuda/12.6/bin/cuobjdump
+[92m[OK][0m  torch               : compiled archs [sm_50, sm_80, sm_86, sm_89, sm_90, sm_90a]
+[94m[INFO][0m 4 GPU(s) detected:
+
+  GPU 0: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 1: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 2: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 3: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+
+--- CUDA Architecture Compilation ---
+[94m[INFO][0m cuobjdump: /opt/nvidia/hpc_sdk/Linux_aarch64/24.11/cuda/12.6/bin/cuobjdump
+[92m[OK][0m  torch               : compiled archs [sm_50, sm_80, sm_86, sm_89, sm_90, sm_90a]
+  GPU 0: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 1: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 2: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+  GPU 3: NVIDIA GH200 120GB
+          Compute Capability : 9.0
+          Total Memory       : 102.0 GB
+          [92m[OK][0m Architecture match (Hopper CC 9.0).
+
+--- CUDA Architecture Compilation ---
+[94m[INFO][0m cuobjdump: /opt/nvidia/hpc_sdk/Linux_aarch64/24.11/cuda/12.6/bin/cuobjdump
+[92m[OK][0m  torch               : compiled archs [sm_50, sm_80, sm_86, sm_89, sm_90, sm_90a]
+[92m[OK][0m  flash_attn          : compiled archs [sm_80, sm_90]
+[92m[OK][0m  flash_attn          : compiled archs [sm_80, sm_90]
+
+--- Precision & cuDNN ---
+
+--- Precision & cuDNN ---
+[92m[OK][0m  flash_attn          : compiled archs [sm_80, sm_90]
+[92m[OK][0m  flash_attn          : compiled archs [sm_80, sm_90]
+
+--- Precision & cuDNN ---
+
+--- Precision & cuDNN ---
+[94m[INFO][0m cuDNN version             : 90501
+[94m[INFO][0m cuDNN version             : 90501
+[94m[INFO][0m cuDNN version             : 90501
+[92m[OK][0m  BF16 supported (native on Hopper)
+[94m[INFO][0m cuDNN version             : 90501
+[92m[OK][0m  FP8 hardware support      : CC 9.0 >= 8.9 (supported)
+[93m[WARN][0m TF32 matmul=False, cudnn=True — DISABLED (impacts throughput)
+
+--- Memory Allocator ---
+[93m[WARN][0m PYTORCH_CUDA_ALLOC_CONF            : UNSET (Expected: Set)
+[92m[OK][0m  BF16 supported (native on Hopper)
+[92m[OK][0m  BF16 supported (native on Hopper)
+
+======================================================================
+ 4. LIBRARY VERSIONS
+======================================================================
+--- Installed Versions ---
+[92m[OK][0m  FP8 hardware support      : CC 9.0 >= 8.9 (supported)
+[92m[OK][0m  FP8 hardware support      : CC 9.0 >= 8.9 (supported)
+[92m[OK][0m  BF16 supported (native on Hopper)
+[93m[WARN][0m TF32 matmul=False, cudnn=True — DISABLED (impacts throughput)
+
+[92m[OK][0m  FP8 hardware support      : CC 9.0 >= 8.9 (supported)
+[93m[WARN][0m TF32 matmul=False, cudnn=True — DISABLED (impacts throughput)
+
+--- Memory Allocator ---
+[93m[WARN][0m PYTORCH_CUDA_ALLOC_CONF            : UNSET (Expected: Set)
+--- Memory Allocator ---
+[93m[WARN][0m PYTORCH_CUDA_ALLOC_CONF            : UNSET (Expected: Set)
+[93m[WARN][0m TF32 matmul=False, cudnn=True — DISABLED (impacts throughput)
+
+--- Memory Allocator ---
+[93m[WARN][0m PYTORCH_CUDA_ALLOC_CONF            : UNSET (Expected: Set)
+
+======================================================================
+ 4. LIBRARY VERSIONS
+======================================================================
+
+======================================================================
+ 4. LIBRARY VERSIONS
+======================================================================
+--- Installed Versions ---
+--- Installed Versions ---
+
+======================================================================
+ 4. LIBRARY VERSIONS
+======================================================================
+--- Installed Versions ---
+[92m[OK][0m torch               : 2.6.0+cu126
+[92m[OK][0m torch               : 2.6.0+cu126
+[92m[OK][0m torch               : 2.6.0+cu126
+[92m[OK][0m torch               : 2.6.0+cu126
+[92m[OK][0m pytorch-lightning   : 2.5.5
+[92m[OK][0m pytorch-lightning   : 2.5.5
+[92m[OK][0m pytorch-lightning   : 2.5.5
+[92m[OK][0m pytorch-lightning   : 2.5.5
+[93m[WARN][0m torch-cluster       : Not Installed
+[93m[WARN][0m torch-cluster       : Not Installed
+[93m[WARN][0m torch-cluster       : Not Installed
+[93m[WARN][0m torch-cluster       : Not Installed
+[92m[OK][0m flash_attn          : 2.8.3
+[92m[OK][0m flash_attn          : 2.8.3
+[92m[OK][0m flash_attn          : 2.8.3
+[92m[OK][0m flash_attn          : 2.8.3
+[93m[WARN][0m triton              : Not Installed
+[93m[WARN][0m triton              : Not Installed
+[93m[WARN][0m triton              : Not Installed
+[93m[WARN][0m triton              : Not Installed
+[93m[WARN][0m transformers        : Not Installed
+[93m[WARN][0m transformers        : Not Installed
+[93m[WARN][0m transformers        : Not Installed
+[93m[WARN][0m transformers        : Not Installed
+[93m[WARN][0m deepspeed           : Not Installed
+[93m[WARN][0m deepspeed           : Not Installed
+[93m[WARN][0m deepspeed           : Not Installed
+[93m[WARN][0m deepspeed           : Not Installed
+[92m[OK][0m numpy               : 1.26.4
+[92m[OK][0m numpy               : 1.26.4
+[92m[OK][0m numpy               : 1.26.4
+[92m[OK][0m numpy               : 1.26.4
+[92m[OK][0m anemoi.models       : 0.9.7
+[92m[OK][0m anemoi.models       : 0.9.7
+[92m[OK][0m anemoi.models       : 0.9.7
+[92m[OK][0m anemoi.models       : 0.9.7
+[92m[OK][0m anemoi-training     : 0.6.7
+[92m[OK][0m anemoi-training     : 0.6.7
+[92m[OK][0m anemoi-training     : 0.6.7
+[92m[OK][0m anemoi-training     : 0.6.7
+[92m[OK][0m anemoi-utils        : 0.4.38
+[92m[OK][0m anemoi-utils        : 0.4.38
+[92m[OK][0m anemoi-utils        : 0.4.38
+[92m[OK][0m anemoi-utils        : 0.4.38
+[92m[OK][0m anemoi-graphs       : 0.6.6
+[92m[OK][0m anemoi-graphs       : 0.6.6
+[92m[OK][0m anemoi-graphs       : 0.6.6
+[92m[OK][0m anemoi-graphs       : 0.6.6
+[93m[WARN][0m nvidia-cudnn-cu12   : Not Installed
+[93m[WARN][0m nvidia-cudnn-cu12   : Not Installed
+[93m[WARN][0m nvidia-cudnn-cu12   : Not Installed
+[93m[WARN][0m nvidia-nccl-cu12    : Not Installed
+[93m[WARN][0m nvidia-nccl-cu12    : Not Installed
+[93m[WARN][0m nvidia-cudnn-cu12   : Not Installed
+[93m[WARN][0m nvidia-nccl-cu12    : Not Installed
+[93m[WARN][0m transformer_engine  : Not Installed
+[93m[WARN][0m transformer_engine  : Not Installed
+[93m[WARN][0m transformer_engine  : Not Installed
+[93m[WARN][0m nvidia-nccl-cu12    : Not Installed
+[93m[WARN][0m transformer_engine  : Not Installed
+
+======================================================================
+ 5. STORAGE & NUMA
+======================================================================
+Playbook Ref: 'Storage I/O can be a bottleneck... /scratch dominates'
+
+
+======================================================================
+ 5. STORAGE & NUMA
+======================================================================
+Playbook Ref: 'Storage I/O can be a bottleneck... /scratch dominates'
+
+
+======================================================================
+ 5. STORAGE & NUMA
+======================================================================
+Playbook Ref: 'Storage I/O can be a bottleneck... /scratch dominates'
+
+
+======================================================================
+ 5. STORAGE & NUMA
+======================================================================
+Playbook Ref: 'Storage I/O can be a bottleneck... /scratch dominates'
+
+2206@kfi,2271@kfi:2270@kfi,2889@kfi:/lfs1aip2    lustre     21P  6.9P   14P  34% /lus/lfs1aip2
+
+[93m[WARN][0m No local scratch/NVMe detected. Verify mount points.
+
+[94m[INFO][0m CPU Affinity: Process bound to 16 cores.
+
+--- System Limits ---
+2206@kfi,2271@kfi:2270@kfi,2889@kfi:/lfs1aip2    lustre     21P  6.9P   14P  34% /lus/lfs1aip2
+
+[93m[WARN][0m No local scratch/NVMe detected. Verify mount points.
+2206@kfi,2271@kfi:2270@kfi,2889@kfi:/lfs1aip2    lustre     21P  6.9P   14P  34% /lus/lfs1aip2
+
+[93m[WARN][0m No local scratch/NVMe detected. Verify mount points.
+
+[94m[INFO][0m CPU Affinity: Process bound to 16 cores.
+
+--- System Limits ---
+2206@kfi,2271@kfi:2270@kfi,2889@kfi:/lfs1aip2    lustre     21P  6.9P   14P  34% /lus/lfs1aip2
+
+[94m[INFO][0m CPU Affinity: Process bound to 16 cores.
+
+--- System Limits ---
+
+[93m[WARN][0m No local scratch/NVMe detected. Verify mount points.
+
+[94m[INFO][0m CPU Affinity: Process bound to 16 cores.
+
+--- System Limits ---
+[92m[OK][0m  Open file descriptors (ulimit -n): 131072
+
+======================================================================
+ AUDIT SUMMARY
+======================================================================
+  [92m[OK][0m   34/52 checks passed
+  [93m[WARN][0m  18/52 warnings
+  [91m[FAIL][0m  0/52 failures
+
+  Review WARN items for optimal performance.
+[92m[OK][0m  Open file descriptors (ulimit -n): 131072
+[92m[OK][0m  Open file descriptors (ulimit -n): 131072
+
+======================================================================
+ AUDIT SUMMARY
+======================================================================
+  [92m[OK][0m   34/52 checks passed
+  [93m[WARN][0m  18/52 warnings
+  [91m[FAIL][0m  0/52 failures
+
+  Review WARN items for optimal performance.
+[92m[OK][0m  Open file descriptors (ulimit -n): 131072
+
+======================================================================
+ AUDIT SUMMARY
+======================================================================
+  [92m[OK][0m   34/52 checks passed
+  [93m[WARN][0m  18/52 warnings
+  [91m[FAIL][0m  0/52 failures
+
+  Review WARN items for optimal performance.
+
+======================================================================
+ AUDIT SUMMARY
+======================================================================
+  [92m[OK][0m   34/52 checks passed
+  [93m[WARN][0m  18/52 warnings
+  [91m[FAIL][0m  0/52 failures
+
+  Review WARN items for optimal performance.
+~/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/pretraining ~/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2
+2: [2026-03-30 11:00:12,439][anemoi.training.train.train][INFO] - Config validated.
+0: [2026-03-30 11:00:12,439][anemoi.training.train.train][INFO] - Config validated.
+2: [2026-03-30 11:00:12,439][anemoi.training.train.train][INFO] - Starting from checkpoint: False
+0: [2026-03-30 11:00:12,439][anemoi.training.train.train][INFO] - Starting from checkpoint: False
+2: [2026-03-30 11:00:12,440][anemoi.training.train.train][INFO] - Run id: c0143058-2812-43f9-a16d-bdafbc8bc100
+0: [2026-03-30 11:00:12,440][anemoi.training.train.train][INFO] - Run id: bd4d65da-cd99-4b24-9381-f62d12f95577
+2: [2026-03-30 11:00:12,440][anemoi.training.train.train][INFO] - Checkpoints path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/c0143058-2812-43f9-a16d-bdafbc8bc100
+0: [2026-03-30 11:00:12,440][anemoi.training.train.train][INFO] - Checkpoints path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577
+2: [2026-03-30 11:00:12,440][anemoi.training.train.train][INFO] - Plots path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/plots/c0143058-2812-43f9-a16d-bdafbc8bc100
+0: [2026-03-30 11:00:12,440][anemoi.training.train.train][INFO] - Plots path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/plots/bd4d65da-cd99-4b24-9381-f62d12f95577
+2: [2026-03-30 11:00:12,440][anemoi.training.train.profiler][INFO] - Profiler path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/profiler/c0143058-2812-43f9-a16d-bdafbc8bc100
+0: [2026-03-30 11:00:12,440][anemoi.training.train.profiler][INFO] - Profiler path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/profiler/bd4d65da-cd99-4b24-9381-f62d12f95577
+1: [2026-03-30 11:00:12,843][anemoi.training.train.train][INFO] - Config validated.
+1: [2026-03-30 11:00:12,844][anemoi.training.train.train][INFO] - Starting from checkpoint: False
+1: [2026-03-30 11:00:12,844][anemoi.training.train.train][INFO] - Run id: f7dfd597-0520-4c55-8f47-545826964656
+1: [2026-03-30 11:00:12,844][anemoi.training.train.train][INFO] - Checkpoints path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/f7dfd597-0520-4c55-8f47-545826964656
+1: [2026-03-30 11:00:12,844][anemoi.training.train.train][INFO] - Plots path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/plots/f7dfd597-0520-4c55-8f47-545826964656
+1: [2026-03-30 11:00:12,844][anemoi.training.train.profiler][INFO] - Profiler path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/profiler/f7dfd597-0520-4c55-8f47-545826964656
+3: [2026-03-30 11:00:12,852][anemoi.training.train.train][INFO] - Config validated.
+3: [2026-03-30 11:00:12,852][anemoi.training.train.train][INFO] - Starting from checkpoint: False
+3: [2026-03-30 11:00:12,852][anemoi.training.train.train][INFO] - Run id: b0d38cb1-45d4-4a43-b4a4-05e291b34d97
+3: [2026-03-30 11:00:12,853][anemoi.training.train.train][INFO] - Checkpoints path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/b0d38cb1-45d4-4a43-b4a4-05e291b34d97
+3: [2026-03-30 11:00:12,853][anemoi.training.train.train][INFO] - Plots path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/plots/b0d38cb1-45d4-4a43-b4a4-05e291b34d97
+3: [2026-03-30 11:00:12,853][anemoi.training.train.profiler][INFO] - Profiler path: /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/profiler/b0d38cb1-45d4-4a43-b4a4-05e291b34d97
+0: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][INFO] - Reading the dataset from /home/u6fw/tomas.u6fw/u6fw_shared/tomas/ai4nwp_datasets/datasets//aifs-ea-an-oper-0001-mars-o96-1979-2023-6h-v8.zarr.
+3: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][INFO] - Reading the dataset from /home/u6fw/tomas.u6fw/u6fw_shared/tomas/ai4nwp_datasets/datasets//aifs-ea-an-oper-0001-mars-o96-1979-2023-6h-v8.zarr.
+1: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][INFO] - Reading the dataset from /home/u6fw/tomas.u6fw/u6fw_shared/tomas/ai4nwp_datasets/datasets//aifs-ea-an-oper-0001-mars-o96-1979-2023-6h-v8.zarr.
+0: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][WARNING] - ZarrDatasetNodes is now deprecated in favour of AnemoiDatasetNodes.
+1: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][WARNING] - ZarrDatasetNodes is now deprecated in favour of AnemoiDatasetNodes.
+2: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][INFO] - Reading the dataset from /home/u6fw/tomas.u6fw/u6fw_shared/tomas/ai4nwp_datasets/datasets//aifs-ea-an-oper-0001-mars-o96-1979-2023-6h-v8.zarr.
+3: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][WARNING] - ZarrDatasetNodes is now deprecated in favour of AnemoiDatasetNodes.
+2: [2026-03-30 11:00:13,918][anemoi.graphs.nodes.builders.from_file][WARNING] - ZarrDatasetNodes is now deprecated in favour of AnemoiDatasetNodes.
+0: [2026-03-30 11:00:15,703][anemoi.graphs.edges.builders.cutoff][INFO] - Using CutOff-Edges (with radius = 144.6 km) between data and hidden.
+2: [2026-03-30 11:00:15,703][anemoi.graphs.edges.builders.cutoff][INFO] - Using CutOff-Edges (with radius = 144.6 km) between data and hidden.
+3: [2026-03-30 11:00:15,703][anemoi.graphs.edges.builders.cutoff][INFO] - Using CutOff-Edges (with radius = 144.6 km) between data and hidden.
+1: [2026-03-30 11:00:15,703][anemoi.graphs.edges.builders.cutoff][INFO] - Using CutOff-Edges (with radius = 144.6 km) between data and hidden.
+3: [2026-03-30 11:00:15,716][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+0: [2026-03-30 11:00:15,716][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+1: [2026-03-30 11:00:15,716][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+2: [2026-03-30 11:00:15,716][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+0: [2026-03-30 11:00:15,971][anemoi.graphs.edges.builders.knn][INFO] - Using KNN-Edges (with 3 nearest neighbours) between hidden and data.
+2: [2026-03-30 11:00:15,971][anemoi.graphs.edges.builders.knn][INFO] - Using KNN-Edges (with 3 nearest neighbours) between hidden and data.
+1: [2026-03-30 11:00:15,971][anemoi.graphs.edges.builders.knn][INFO] - Using KNN-Edges (with 3 nearest neighbours) between hidden and data.
+3: [2026-03-30 11:00:15,971][anemoi.graphs.edges.builders.knn][INFO] - Using KNN-Edges (with 3 nearest neighbours) between hidden and data.
+0: [2026-03-30 11:00:15,972][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+2: [2026-03-30 11:00:15,972][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+1: [2026-03-30 11:00:15,972][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+3: [2026-03-30 11:00:15,972][anemoi.graphs.edges.builders.base][WARNING] - The 'torch-cluster' library is not installed. Installing 'torch-cluster' can significantly improve performance for graph creation. You can install it using 'pip install torch-cluster'.
+3: [2026-03-30 11:00:16,017][anemoi.graphs.create][INFO] - Cleaning graph.
+0: [2026-03-30 11:00:16,017][anemoi.graphs.create][INFO] - Cleaning graph.
+3: [2026-03-30 11:00:16,017][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+2: [2026-03-30 11:00:16,017][anemoi.graphs.create][INFO] - Cleaning graph.
+0: [2026-03-30 11:00:16,017][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+3: [2026-03-30 11:00:16,017][anemoi.graphs.create][INFO] - _dataset deleted from graph.
+1: [2026-03-30 11:00:16,017][anemoi.graphs.create][INFO] - Cleaning graph.
+3: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+2: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+0: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _dataset deleted from graph.
+1: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+2: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _dataset deleted from graph.
+0: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+1: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _dataset deleted from graph.
+2: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+1: [2026-03-30 11:00:16,018][anemoi.graphs.create][INFO] - _grid_reference_distance deleted from graph.
+2: [2026-03-30 11:00:16,024][anemoi.graphs.create][INFO] - Graph saved at /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/graphs/graph_enc_proc_dec_o96.pt.
+0: [2026-03-30 11:00:16,024][anemoi.graphs.create][INFO] - Graph saved at /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/graphs/graph_enc_proc_dec_o96.pt.
+3: [2026-03-30 11:00:16,025][anemoi.graphs.create][INFO] - Graph saved at /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/graphs/graph_enc_proc_dec_o96.pt.
+1: [2026-03-30 11:00:16,025][anemoi.graphs.create][INFO] - Graph saved at /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/graphs/graph_enc_proc_dec_o96.pt.
+1: [2026-03-30 11:00:16,616][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+0: [2026-03-30 11:00:16,616][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+1: [2026-03-30 11:00:16,617][anemoi.training.data.datamodule.singledatamodule][INFO] - Timeincrement set to 1 for data with frequency, 21600, and timestep, 21600
+0: [2026-03-30 11:00:16,617][anemoi.training.data.datamodule.singledatamodule][INFO] - Timeincrement set to 1 for data with frequency, 21600, and timestep, 21600
+2: [2026-03-30 11:00:16,617][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+2: [2026-03-30 11:00:16,618][anemoi.training.data.datamodule.singledatamodule][INFO] - Timeincrement set to 1 for data with frequency, 21600, and timestep, 21600
+0: [2026-03-30 11:00:16,619][anemoi.training.train.train][INFO] - Number of data variables: 101
+1: [2026-03-30 11:00:16,619][anemoi.training.train.train][INFO] - Number of data variables: 101
+0: [2026-03-30 11:00:16,619][anemoi.training.train.train][INFO] - Variables: ['10u', '10v', '2d', '2t', 'cos_julian_day', 'cos_latitude', 'cos_local_time', 'cos_longitude', 'cp', 'insolation', 'lsm', 'msl', 'q_100', 'q_1000', 'q_150', 'q_200', 'q_250', 'q_300', 'q_400', 'q_50', 'q_500', 'q_600', 'q_700', 'q_850', 'q_925', 'sdor', 'sin_julian_day', 'sin_latitude', 'sin_local_time', 'sin_longitude', 'skt', 'slor', 'sp', 't_100', 't_1000', 't_150', 't_200', 't_250', 't_300', 't_400', 't_50', 't_500', 't_600', 't_700', 't_850', 't_925', 'tcw', 'tp', 'u_100', 'u_1000', 'u_150', 'u_200', 'u_250', 'u_300', 'u_400', 'u_50', 'u_500', 'u_600', 'u_700', 'u_850', 'u_925', 'v_100', 'v_1000', 'v_150', 'v_200', 'v_250', 'v_300', 'v_400', 'v_50', 'v_500', 'v_600', 'v_700', 'v_850', 'v_925', 'w_100', 'w_1000', 'w_150', 'w_200', 'w_250', 'w_300', 'w_400', 'w_50', 'w_500', 'w_600', 'w_700', 'w_850', 'w_925', 'z', 'z_100', 'z_1000', 'z_150', 'z_200', 'z_250', 'z_300', 'z_400', 'z_50', 'z_500', 'z_600', 'z_700', 'z_850', 'z_925']
+1: [2026-03-30 11:00:16,619][anemoi.training.train.train][INFO] - Variables: ['10u', '10v', '2d', '2t', 'cos_julian_day', 'cos_latitude', 'cos_local_time', 'cos_longitude', 'cp', 'insolation', 'lsm', 'msl', 'q_100', 'q_1000', 'q_150', 'q_200', 'q_250', 'q_300', 'q_400', 'q_50', 'q_500', 'q_600', 'q_700', 'q_850', 'q_925', 'sdor', 'sin_julian_day', 'sin_latitude', 'sin_local_time', 'sin_longitude', 'skt', 'slor', 'sp', 't_100', 't_1000', 't_150', 't_200', 't_250', 't_300', 't_400', 't_50', 't_500', 't_600', 't_700', 't_850', 't_925', 'tcw', 'tp', 'u_100', 'u_1000', 'u_150', 'u_200', 'u_250', 'u_300', 'u_400', 'u_50', 'u_500', 'u_600', 'u_700', 'u_850', 'u_925', 'v_100', 'v_1000', 'v_150', 'v_200', 'v_250', 'v_300', 'v_400', 'v_50', 'v_500', 'v_600', 'v_700', 'v_850', 'v_925', 'w_100', 'w_1000', 'w_150', 'w_200', 'w_250', 'w_300', 'w_400', 'w_50', 'w_500', 'w_600', 'w_700', 'w_850', 'w_925', 'z', 'z_100', 'z_1000', 'z_150', 'z_200', 'z_250', 'z_300', 'z_400', 'z_50', 'z_500', 'z_600', 'z_700', 'z_850', 'z_925']
+2: [2026-03-30 11:00:16,620][anemoi.training.train.train][INFO] - Number of data variables: 101
+2: [2026-03-30 11:00:16,620][anemoi.training.train.train][INFO] - Variables: ['10u', '10v', '2d', '2t', 'cos_julian_day', 'cos_latitude', 'cos_local_time', 'cos_longitude', 'cp', 'insolation', 'lsm', 'msl', 'q_100', 'q_1000', 'q_150', 'q_200', 'q_250', 'q_300', 'q_400', 'q_50', 'q_500', 'q_600', 'q_700', 'q_850', 'q_925', 'sdor', 'sin_julian_day', 'sin_latitude', 'sin_local_time', 'sin_longitude', 'skt', 'slor', 'sp', 't_100', 't_1000', 't_150', 't_200', 't_250', 't_300', 't_400', 't_50', 't_500', 't_600', 't_700', 't_850', 't_925', 'tcw', 'tp', 'u_100', 'u_1000', 'u_150', 'u_200', 'u_250', 'u_300', 'u_400', 'u_50', 'u_500', 'u_600', 'u_700', 'u_850', 'u_925', 'v_100', 'v_1000', 'v_150', 'v_200', 'v_250', 'v_300', 'v_400', 'v_50', 'v_500', 'v_600', 'v_700', 'v_850', 'v_925', 'w_100', 'w_1000', 'w_150', 'w_200', 'w_250', 'w_300', 'w_400', 'w_50', 'w_500', 'w_600', 'w_700', 'w_850', 'w_925', 'z', 'z_100', 'z_1000', 'z_150', 'z_200', 'z_250', 'z_300', 'z_400', 'z_50', 'z_500', 'z_600', 'z_700', 'z_850', 'z_925']
+3: [2026-03-30 11:00:16,627][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+3: [2026-03-30 11:00:16,628][anemoi.training.data.datamodule.singledatamodule][INFO] - Timeincrement set to 1 for data with frequency, 21600, and timestep, 21600
+3: [2026-03-30 11:00:16,630][anemoi.training.train.train][INFO] - Number of data variables: 101
+3: [2026-03-30 11:00:16,630][anemoi.training.train.train][INFO] - Variables: ['10u', '10v', '2d', '2t', 'cos_julian_day', 'cos_latitude', 'cos_local_time', 'cos_longitude', 'cp', 'insolation', 'lsm', 'msl', 'q_100', 'q_1000', 'q_150', 'q_200', 'q_250', 'q_300', 'q_400', 'q_50', 'q_500', 'q_600', 'q_700', 'q_850', 'q_925', 'sdor', 'sin_julian_day', 'sin_latitude', 'sin_local_time', 'sin_longitude', 'skt', 'slor', 'sp', 't_100', 't_1000', 't_150', 't_200', 't_250', 't_300', 't_400', 't_50', 't_500', 't_600', 't_700', 't_850', 't_925', 'tcw', 'tp', 'u_100', 'u_1000', 'u_150', 'u_200', 'u_250', 'u_300', 'u_400', 'u_50', 'u_500', 'u_600', 'u_700', 'u_850', 'u_925', 'v_100', 'v_1000', 'v_150', 'v_200', 'v_250', 'v_300', 'v_400', 'v_50', 'v_500', 'v_600', 'v_700', 'v_850', 'v_925', 'w_100', 'w_1000', 'w_150', 'w_200', 'w_250', 'w_300', 'w_400', 'w_50', 'w_500', 'w_600', 'w_700', 'w_850', 'w_925', 'z', 'z_100', 'z_1000', 'z_150', 'z_200', 'z_250', 'z_300', 'z_400', 'z_50', 'z_500', 'z_600', 'z_700', 'z_850', 'z_925']
+1: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234322, global_rank 0, model comm group 0)  has low/high range 24105 / 32140
+1: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234328, global_rank 0, model comm group 0)  has low/high range 40175 / 48210
+1: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234314, global_rank 0, model comm group 0)  has low/high range 8035 / 16070
+1: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234319, global_rank 0, model comm group 0)  has low/high range 16070 / 24105
+0: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234316, global_rank 0, model comm group 0)  has low/high range 8035 / 16070
+0: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234326, global_rank 0, model comm group 0)  has low/high range 40175 / 48210
+1: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234312, global_rank 0, model comm group 0)  has low/high range 0 / 8035
+2: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234318, global_rank 0, model comm group 0)  has low/high range 16070 / 24105
+2: [2026-03-30 11:00:17,378][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234327, global_rank 0, model comm group 0)  has low/high range 40175 / 48210
+0: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234313, global_rank 0, model comm group 0)  has low/high range 0 / 8035
+2: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234315, global_rank 0, model comm group 0)  has low/high range 8035 / 16070
+0: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234332, global_rank 0, model comm group 0)  has low/high range 56245 / 64280
+0: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234320, global_rank 0, model comm group 0)  has low/high range 24105 / 32140
+1: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234331, global_rank 0, model comm group 0)  has low/high range 48210 / 56245
+1: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234334, global_rank 0, model comm group 0)  has low/high range 56245 / 64280
+1: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234324, global_rank 0, model comm group 0)  has low/high range 32140 / 40175
+2: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234325, global_rank 0, model comm group 0)  has low/high range 32140 / 40175
+2: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234330, global_rank 0, model comm group 0)  has low/high range 48210 / 56245
+2: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234321, global_rank 0, model comm group 0)  has low/high range 24105 / 32140
+2: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234311, global_rank 0, model comm group 0)  has low/high range 0 / 8035
+0: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234323, global_rank 0, model comm group 0)  has low/high range 32140 / 40175
+2: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234333, global_rank 0, model comm group 0)  has low/high range 56245 / 64280
+0: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234317, global_rank 0, model comm group 0)  has low/high range 16070 / 24105
+0: [2026-03-30 11:00:17,379][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234329, global_rank 0, model comm group 0)  has low/high range 48210 / 56245
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234331, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234334, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234324, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234319, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234314, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234312, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234320, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234329, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234325, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234318, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234328, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234327, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234316, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234315, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234330, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234333, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234313, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234321, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234311, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234317, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234326, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234323, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234322, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:17,383][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234332, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,387][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234362, global_rank 0, model comm group 0)  has low/high range 0 / 8035
+3: [2026-03-30 11:00:17,390][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234362, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,400][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234363, global_rank 0, model comm group 0)  has low/high range 8035 / 16070
+3: [2026-03-30 11:00:17,403][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234363, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,412][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234364, global_rank 0, model comm group 0)  has low/high range 16070 / 24105
+3: [2026-03-30 11:00:17,414][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234364, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,422][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234365, global_rank 0, model comm group 0)  has low/high range 24105 / 32140
+3: [2026-03-30 11:00:17,424][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234365, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,433][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234366, global_rank 0, model comm group 0)  has low/high range 32140 / 40175
+3: [2026-03-30 11:00:17,435][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234366, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,444][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234367, global_rank 0, model comm group 0)  has low/high range 40175 / 48210
+3: [2026-03-30 11:00:17,446][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234367, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,460][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234368, global_rank 0, model comm group 0)  has low/high range 48210 / 56245
+3: [2026-03-30 11:00:17,463][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234368, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:17,476][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234369, global_rank 0, model comm group 0)  has low/high range 56245 / 64280
+3: [2026-03-30 11:00:17,478][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234369, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:18,721][anemoi.training.train.train][INFO] - Total number of prognostic variables: 88
+2: [2026-03-30 11:00:18,721][anemoi.training.train.train][INFO] - Total number of auxiliary variables: 13
+2: [2026-03-30 11:00:18,721][anemoi.training.train.train][INFO] - Total GPU count / model group size: 4 - NB: the learning rate will be scaled by this factor!
+2: [2026-03-30 11:00:18,723][anemoi.training.train.train][INFO] - Effective learning rate: 2.500e-04
+2: [2026-03-30 11:00:18,723][anemoi.training.train.train][INFO] - Training limits: max_epochs=2, max_steps=200. Training will stop when either limit is reached first. Learning rate scheduler will run for 260000 steps.
+3: [2026-03-30 11:00:18,730][anemoi.training.train.train][INFO] - Total number of prognostic variables: 88
+3: [2026-03-30 11:00:18,731][anemoi.training.train.train][INFO] - Total number of auxiliary variables: 13
+1: [2026-03-30 11:00:18,731][anemoi.training.train.train][INFO] - Total number of prognostic variables: 88
+1: [2026-03-30 11:00:18,731][anemoi.training.train.train][INFO] - Total number of auxiliary variables: 13
+3: [2026-03-30 11:00:18,731][anemoi.training.train.train][INFO] - Total GPU count / model group size: 4 - NB: the learning rate will be scaled by this factor!
+3: [2026-03-30 11:00:18,732][anemoi.training.train.train][INFO] - Effective learning rate: 2.500e-04
+3: [2026-03-30 11:00:18,733][anemoi.training.train.train][INFO] - Training limits: max_epochs=2, max_steps=200. Training will stop when either limit is reached first. Learning rate scheduler will run for 260000 steps.
+1: [2026-03-30 11:00:18,731][anemoi.training.train.train][INFO] - Total GPU count / model group size: 4 - NB: the learning rate will be scaled by this factor!
+1: [2026-03-30 11:00:18,733][anemoi.training.train.train][INFO] - Effective learning rate: 2.500e-04
+1: [2026-03-30 11:00:18,733][anemoi.training.train.train][INFO] - Training limits: max_epochs=2, max_steps=200. Training will stop when either limit is reached first. Learning rate scheduler will run for 260000 steps.
+0: [2026-03-30 11:00:18,745][anemoi.training.train.train][INFO] - Total number of prognostic variables: 88
+0: [2026-03-30 11:00:18,746][anemoi.training.train.train][INFO] - Total number of auxiliary variables: 13
+0: [2026-03-30 11:00:18,746][anemoi.training.train.train][INFO] - Total GPU count / model group size: 4 - NB: the learning rate will be scaled by this factor!
+0: [2026-03-30 11:00:18,747][anemoi.training.train.train][INFO] - Effective learning rate: 2.500e-04
+0: [2026-03-30 11:00:18,747][anemoi.training.train.train][INFO] - Training limits: max_epochs=2, max_steps=200. Training will stop when either limit is reached first. Learning rate scheduler will run for 260000 steps.
+2: [2026-03-30 11:00:18,758][anemoi.models.migrations.migrator][INFO] - Loading migration 1755530253_initial
+1: [2026-03-30 11:00:18,760][anemoi.models.migrations.migrator][INFO] - Loading migration 1755530253_initial
+3: [2026-03-30 11:00:18,760][anemoi.models.migrations.migrator][INFO] - Loading migration 1755530253_initial
+0: [2026-03-30 11:00:18,772][anemoi.models.migrations.migrator][INFO] - Loading migration 1755530253_initial
+0: [2026-03-30 11:00:18,809][pytorch_lightning.utilities.rank_zero][INFO] - Using 16bit Automatic Mixed Precision (AMP)
+0: [2026-03-30 11:00:18,820][pytorch_lightning.utilities.rank_zero][INFO] - GPU available: True (cuda), used: True
+0: [2026-03-30 11:00:18,820][pytorch_lightning.utilities.rank_zero][INFO] - TPU available: False, using: 0 TPU cores
+0: [2026-03-30 11:00:18,820][pytorch_lightning.utilities.rank_zero][INFO] - HPU available: False, using: 0 HPUs
+2: [2026-03-30 11:00:18,839][lightning_fabric.utilities.seed][INFO] - [rank: 2] Seed set to 3462325
+3: [2026-03-30 11:00:18,840][lightning_fabric.utilities.seed][INFO] - [rank: 3] Seed set to 3462325
+1: [2026-03-30 11:00:18,840][lightning_fabric.utilities.seed][INFO] - [rank: 1] Seed set to 3462325
+1: [2026-03-30 11:00:18,844][anemoi.training.train.train][INFO] - Initial seed: Rank 1, initial seed 3462325, running with random seed: 3462325
+2: [2026-03-30 11:00:18,844][anemoi.training.train.train][INFO] - Initial seed: Rank 2, initial seed 3462325, running with random seed: 3462325
+3: [2026-03-30 11:00:18,844][anemoi.training.train.train][INFO] - Initial seed: Rank 3, initial seed 3462325, running with random seed: 3462325
+0: [2026-03-30 11:00:18,850][lightning_fabric.utilities.seed][INFO] - [rank: 0] Seed set to 3462325
+0: [2026-03-30 11:00:18,853][anemoi.training.train.train][INFO] - Initial seed: Rank 0, initial seed 3462325, running with random seed: 3462325
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+2: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+3: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+0: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+1: [2026-03-30 11:00:26,607][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+1: [2026-03-30 11:00:26,608][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+2: [2026-03-30 11:00:26,614][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+3: [2026-03-30 11:00:26,614][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+2: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+2: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+3: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+2: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+3: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+2: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+3: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+2: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+3: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+3: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+1: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+1: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+1: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+1: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+1: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+1: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+0: [2026-03-30 11:00:26,615][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_julian_day is not normalized.
+0: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_latitude is not normalized.
+0: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_local_time is not normalized.
+0: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: cos_longitude is not normalized.
+0: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: insolation is not normalized.
+0: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: lsm is not normalized.
+1: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+2: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+1: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+2: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+1: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+2: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+1: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+3: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+2: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+3: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+3: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+3: [2026-03-30 11:00:26,616][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+0: [2026-03-30 11:00:26,617][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_julian_day is not normalized.
+0: [2026-03-30 11:00:26,617][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_latitude is not normalized.
+0: [2026-03-30 11:00:26,617][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_local_time is not normalized.
+0: [2026-03-30 11:00:26,617][anemoi.models.preprocessing.normalizer][INFO] - Normalizing: sin_longitude is not normalized.
+0: [2026-03-30 11:00:26,682][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+1: [2026-03-30 11:00:26,682][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+2: [2026-03-30 11:00:26,682][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+3: [2026-03-30 11:00:26,682][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+0: [2026-03-30 11:00:26,682][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+1: [2026-03-30 11:00:26,682][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+2: [2026-03-30 11:00:26,682][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+3: [2026-03-30 11:00:26,683][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+0: [2026-03-30 11:00:26,683][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+1: [2026-03-30 11:00:26,683][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+2: [2026-03-30 11:00:26,683][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+3: [2026-03-30 11:00:26,683][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+0: [2026-03-30 11:00:26,685][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+2: [2026-03-30 11:00:26,685][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+3: [2026-03-30 11:00:26,685][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+1: [2026-03-30 11:00:26,685][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+2: [2026-03-30 11:00:26,686][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+0: [2026-03-30 11:00:26,686][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+3: [2026-03-30 11:00:26,686][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+1: [2026-03-30 11:00:26,686][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+2: [2026-03-30 11:00:26,756][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+0: [2026-03-30 11:00:26,756][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+1: [2026-03-30 11:00:26,756][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+3: [2026-03-30 11:00:26,756][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+2: [2026-03-30 11:00:26,756][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+1: [2026-03-30 11:00:26,756][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+0: [2026-03-30 11:00:26,757][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+3: [2026-03-30 11:00:26,757][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+2: [2026-03-30 11:00:26,757][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+1: [2026-03-30 11:00:26,757][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+0: [2026-03-30 11:00:26,757][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+3: [2026-03-30 11:00:26,757][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+2: [2026-03-30 11:00:26,758][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+1: [2026-03-30 11:00:26,758][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+0: [2026-03-30 11:00:26,758][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+3: [2026-03-30 11:00:26,758][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+2: [2026-03-30 11:00:26,758][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+1: [2026-03-30 11:00:26,758][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+0: [2026-03-30 11:00:26,758][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+3: [2026-03-30 11:00:26,759][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+0: [2026-03-30 11:00:27,701][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,701][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,702][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,702][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,737][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,737][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,738][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,738][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,772][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,773][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,774][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,774][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,808][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,809][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,810][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,810][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,844][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,844][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,845][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,846][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,879][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,880][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,881][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,882][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,915][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,915][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,916][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,918][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,950][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,951][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,952][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,953][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:27,985][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:27,986][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:27,987][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:27,989][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,021][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:28,021][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:28,022][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:28,024][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,056][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:28,057][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:28,058][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:28,060][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,092][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:28,092][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:28,093][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:28,096][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,127][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:28,128][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:28,129][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:28,131][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,163][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:28,163][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:28,164][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:28,167][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,198][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:28,199][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:28,200][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:28,203][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,234][anemoi.models.layers.attention][INFO] - Using flash attention v2
+2: [2026-03-30 11:00:28,234][anemoi.models.layers.attention][INFO] - Using flash attention v2
+0: [2026-03-30 11:00:28,235][anemoi.models.layers.attention][INFO] - Using flash attention v2
+3: [2026-03-30 11:00:28,238][anemoi.models.layers.attention][INFO] - Using flash attention v2
+1: [2026-03-30 11:00:28,273][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+1: [2026-03-30 11:00:28,274][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+2: [2026-03-30 11:00:28,274][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+1: [2026-03-30 11:00:28,274][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+2: [2026-03-30 11:00:28,274][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+0: [2026-03-30 11:00:28,275][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+1: [2026-03-30 11:00:28,275][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+2: [2026-03-30 11:00:28,275][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+0: [2026-03-30 11:00:28,275][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+1: [2026-03-30 11:00:28,276][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+2: [2026-03-30 11:00:28,276][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+0: [2026-03-30 11:00:28,276][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+2: [2026-03-30 11:00:28,276][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+0: [2026-03-30 11:00:28,277][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+0: [2026-03-30 11:00:28,277][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+3: [2026-03-30 11:00:28,278][anemoi.models.layers.utils][INFO] - Linear kernel: torch.nn.Linear.
+3: [2026-03-30 11:00:28,279][anemoi.models.layers.utils][INFO] - LayerNorm kernel: torch.nn.LayerNorm.
+3: [2026-03-30 11:00:28,279][anemoi.models.layers.utils][INFO] - Activation kernel: torch.nn.GELU.
+3: [2026-03-30 11:00:28,280][anemoi.models.layers.utils][INFO] - QueryNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+3: [2026-03-30 11:00:28,281][anemoi.models.layers.utils][INFO] - KeyNorm kernel: anemoi.models.layers.normalization.AutocastLayerNorm.
+2: [2026-03-30 11:00:28,395][anemoi.training.losses.scalers.variable_level][INFO] - Variable Level Scaling: Applying ReluVariableLevelScaler scaling to pl variables ({'param': ['q', 't', 'u', 'v', 'w', 'z']})
+2: [2026-03-30 11:00:28,396][anemoi.training.losses.scalers.variable_level][INFO] - with slope = 0.001 and y-intercept/minimum = 0.2.
+1: [2026-03-30 11:00:28,396][anemoi.training.losses.scalers.variable_level][INFO] - Variable Level Scaling: Applying ReluVariableLevelScaler scaling to pl variables ({'param': ['q', 't', 'u', 'v', 'w', 'z']})
+1: [2026-03-30 11:00:28,396][anemoi.training.losses.scalers.variable_level][INFO] - with slope = 0.001 and y-intercept/minimum = 0.2.
+0: [2026-03-30 11:00:28,396][anemoi.training.losses.scalers.variable_level][INFO] - Variable Level Scaling: Applying ReluVariableLevelScaler scaling to pl variables ({'param': ['q', 't', 'u', 'v', 'w', 'z']})
+0: [2026-03-30 11:00:28,396][anemoi.training.losses.scalers.variable_level][INFO] - with slope = 0.001 and y-intercept/minimum = 0.2.
+3: [2026-03-30 11:00:28,400][anemoi.training.losses.scalers.variable_level][INFO] - Variable Level Scaling: Applying ReluVariableLevelScaler scaling to pl variables ({'param': ['q', 't', 'u', 'v', 'w', 'z']})
+3: [2026-03-30 11:00:28,400][anemoi.training.losses.scalers.variable_level][INFO] - with slope = 0.001 and y-intercept/minimum = 0.2.
+2: [2026-03-30 11:00:28,461][anemoi.training.train.train][INFO] - The following submodules will NOT be trained: []
+0: [2026-03-30 11:00:28,462][anemoi.training.train.train][INFO] - The following submodules will NOT be trained: []
+1: [2026-03-30 11:00:28,462][anemoi.training.train.train][INFO] - The following submodules will NOT be trained: []
+3: [2026-03-30 11:00:28,465][anemoi.training.train.train][INFO] - The following submodules will NOT be trained: []
+0: [2026-03-30 11:00:28,484][lightning_fabric.utilities.distributed][INFO] - Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/4
+1: [2026-03-30 11:00:28,484][lightning_fabric.utilities.distributed][INFO] - Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/4
+2: [2026-03-30 11:00:28,484][lightning_fabric.utilities.distributed][INFO] - Initializing distributed: GLOBAL_RANK: 2, MEMBER: 3/4
+3: [2026-03-30 11:00:28,484][lightning_fabric.utilities.distributed][INFO] - Initializing distributed: GLOBAL_RANK: 3, MEMBER: 4/4
+0: NCCL version 2.21.5+cuda12.6
+0: [2026-03-30 11:00:28,584][pytorch_lightning.utilities.rank_zero][INFO] - ----------------------------------------------------------------------------------------------------
+0: distributed_backend=nccl
+0: All distributed processes registered. Starting with 4 processes
+0: ----------------------------------------------------------------------------------------------------
+0: 
+0: [STARTUP] setup (model + data ready)                elapsed= 13.687s  delta= 13.687s
+0: [2026-03-30 11:00:32,460][pytorch_lightning.accelerators.cuda][INFO] - LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+2: [2026-03-30 11:00:32,460][pytorch_lightning.accelerators.cuda][INFO] - LOCAL_RANK: 2 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+1: [2026-03-30 11:00:32,460][pytorch_lightning.accelerators.cuda][INFO] - LOCAL_RANK: 1 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+3: [2026-03-30 11:00:32,460][pytorch_lightning.accelerators.cuda][INFO] - LOCAL_RANK: 3 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+1: [2026-03-30 11:00:32,739][lightning_fabric.utilities.seed][INFO] - [rank: 1] Seed set to 6924650
+2: [2026-03-30 11:00:32,739][lightning_fabric.utilities.seed][INFO] - [rank: 2] Seed set to 10386975
+3: [2026-03-30 11:00:32,739][lightning_fabric.utilities.seed][INFO] - [rank: 3] Seed set to 13849300
+0: [2026-03-30 11:00:32,740][lightning_fabric.utilities.seed][INFO] - [rank: 0] Seed set to 3462325
+0: [STARTUP] on_fit_start                              elapsed= 13.971s  delta=  0.284s
+0: [2026-03-30 11:00:32,748][pytorch_lightning.callbacks.model_summary][INFO] - 
+0:   | Name    | Type                 | Params | Mode 
+0: ---------------------------------------------------------
+0: 0 | model   | AnemoiModelInterface | 231 M  | train
+0: 1 | loss    | WeightedMSELoss      | 0      | train
+0: 2 | metrics | ModuleDict           | 0      | train
+0: ---------------------------------------------------------
+0: 231 M     Trainable params
+0: 0         Non-trainable params
+0: 231 M     Total params
+0: 924.540   Total estimated model params size (MB)
+0: 287       Modules in train mode
+0: 0         Modules in eval mode
+2: [2026-03-30 11:00:32,750][pytorch_lightning.trainer.connectors.signal_connector][INFO] - SLURM auto-requeueing enabled. Setting signal handlers.
+3: [2026-03-30 11:00:32,750][pytorch_lightning.trainer.connectors.signal_connector][INFO] - SLURM auto-requeueing enabled. Setting signal handlers.
+1: [2026-03-30 11:00:32,750][pytorch_lightning.trainer.connectors.signal_connector][INFO] - SLURM auto-requeueing enabled. Setting signal handlers.
+0: [2026-03-30 11:00:32,750][pytorch_lightning.trainer.connectors.signal_connector][INFO] - SLURM auto-requeueing enabled. Setting signal handlers.
+2: [2026-03-30 11:00:32,754][anemoi.training.data.datamodule.singledatamodule][WARNING] - Training end date 2022 is not before validation start date 2022.
+3: [2026-03-30 11:00:32,754][anemoi.training.data.datamodule.singledatamodule][WARNING] - Training end date 2022 is not before validation start date 2022.
+1: [2026-03-30 11:00:32,754][anemoi.training.data.datamodule.singledatamodule][WARNING] - Training end date 2022 is not before validation start date 2022.
+0: Sanity Checking: |          | 0/? [00:00<?, ?it/s][2026-03-30 11:00:32,755][anemoi.training.data.datamodule.singledatamodule][WARNING] - Training end date 2022 is not before validation start date 2022.
+2: [2026-03-30 11:00:33,021][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+1: [2026-03-30 11:00:33,057][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+3: [2026-03-30 11:00:33,066][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+0: [2026-03-30 11:00:33,108][anemoi.training.data.datamodule.singledatamodule][WARNING] - Falling back rollout to: 1
+2: [2026-03-30 11:00:33,134][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234655, global_rank 2, model comm group 2)  has low/high range 1458 / 1549
+1: [2026-03-30 11:00:33,134][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234656, global_rank 1, model comm group 1)  has low/high range 729 / 820
+0: [2026-03-30 11:00:33,134][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234658, global_rank 0, model comm group 0)  has low/high range 0 / 91
+3: [2026-03-30 11:00:33,134][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234657, global_rank 3, model comm group 3)  has low/high range 2187 / 2278
+1: [2026-03-30 11:00:33,136][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (validation, pid 234656, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,136][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (validation, pid 234655, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,136][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (validation, pid 234658, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,136][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (validation, pid 234657, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,142][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234659, global_rank 2, model comm group 2)  has low/high range 1549 / 1640
+2: [2026-03-30 11:00:33,144][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (validation, pid 234659, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,145][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234660, global_rank 1, model comm group 1)  has low/high range 820 / 911
+1: [2026-03-30 11:00:33,146][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (validation, pid 234660, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,147][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234661, global_rank 3, model comm group 3)  has low/high range 2278 / 2369
+0: [2026-03-30 11:00:33,148][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234662, global_rank 0, model comm group 0)  has low/high range 91 / 182
+3: [2026-03-30 11:00:33,148][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (validation, pid 234661, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,149][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (validation, pid 234662, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,152][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234663, global_rank 2, model comm group 2)  has low/high range 1640 / 1731
+2: [2026-03-30 11:00:33,154][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (validation, pid 234663, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,156][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234664, global_rank 1, model comm group 1)  has low/high range 911 / 1002
+1: [2026-03-30 11:00:33,158][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (validation, pid 234664, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,159][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234665, global_rank 3, model comm group 3)  has low/high range 2369 / 2460
+3: [2026-03-30 11:00:33,161][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (validation, pid 234665, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,163][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234666, global_rank 0, model comm group 0)  has low/high range 182 / 273
+2: [2026-03-30 11:00:33,163][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234667, global_rank 2, model comm group 2)  has low/high range 1731 / 1822
+0: [2026-03-30 11:00:33,164][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (validation, pid 234666, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,165][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (validation, pid 234667, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,168][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234668, global_rank 1, model comm group 1)  has low/high range 1002 / 1093
+1: [2026-03-30 11:00:33,170][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (validation, pid 234668, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,171][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234669, global_rank 3, model comm group 3)  has low/high range 2460 / 2551
+3: [2026-03-30 11:00:33,173][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (validation, pid 234669, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,174][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234670, global_rank 0, model comm group 0)  has low/high range 273 / 364
+2: [2026-03-30 11:00:33,174][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234671, global_rank 2, model comm group 2)  has low/high range 1822 / 1913
+0: [2026-03-30 11:00:33,175][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (validation, pid 234670, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,176][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (validation, pid 234671, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,180][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234672, global_rank 1, model comm group 1)  has low/high range 1093 / 1184
+1: [2026-03-30 11:00:33,182][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (validation, pid 234672, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,184][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234673, global_rank 3, model comm group 3)  has low/high range 2551 / 2642
+3: [2026-03-30 11:00:33,185][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (validation, pid 234673, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,185][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234674, global_rank 0, model comm group 0)  has low/high range 364 / 455
+2: [2026-03-30 11:00:33,186][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234675, global_rank 2, model comm group 2)  has low/high range 1913 / 2004
+0: [2026-03-30 11:00:33,187][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (validation, pid 234674, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,187][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (validation, pid 234675, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,192][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234676, global_rank 1, model comm group 1)  has low/high range 1184 / 1275
+1: [2026-03-30 11:00:33,194][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (validation, pid 234676, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,198][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234677, global_rank 3, model comm group 3)  has low/high range 2642 / 2733
+0: [2026-03-30 11:00:33,198][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234678, global_rank 0, model comm group 0)  has low/high range 455 / 546
+2: [2026-03-30 11:00:33,199][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234679, global_rank 2, model comm group 2)  has low/high range 2004 / 2095
+3: [2026-03-30 11:00:33,199][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (validation, pid 234677, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,199][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (validation, pid 234678, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,201][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (validation, pid 234679, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,205][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234680, global_rank 1, model comm group 1)  has low/high range 1275 / 1366
+1: [2026-03-30 11:00:33,207][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (validation, pid 234680, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,209][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234681, global_rank 0, model comm group 0)  has low/high range 546 / 637
+0: [2026-03-30 11:00:33,210][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (validation, pid 234681, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:33,210][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234683, global_rank 2, model comm group 2)  has low/high range 2095 / 2186
+3: [2026-03-30 11:00:33,210][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234682, global_rank 3, model comm group 3)  has low/high range 2733 / 2824
+2: [2026-03-30 11:00:33,212][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (validation, pid 234683, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,212][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (validation, pid 234682, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,218][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234686, global_rank 1, model comm group 1)  has low/high range 1366 / 1457
+1: [2026-03-30 11:00:33,220][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (validation, pid 234686, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:33,225][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234688, global_rank 0, model comm group 0)  has low/high range 637 / 728
+2: [2026-03-30 11:00:33,227][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+0: [2026-03-30 11:00:33,227][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (validation, pid 234688, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:33,229][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234695, global_rank 3, model comm group 3)  has low/high range 2824 / 2915
+3: [2026-03-30 11:00:33,232][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (validation, pid 234695, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:33,240][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+0: [2026-03-30 11:00:33,241][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+3: [2026-03-30 11:00:33,252][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+1: [2026-03-30 11:00:36,415][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234787, global_rank 1, model comm group 1)  has low/high range 16070 / 18078
+2: [2026-03-30 11:00:36,415][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234788, global_rank 2, model comm group 2)  has low/high range 32140 / 34148
+3: [2026-03-30 11:00:36,415][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234789, global_rank 3, model comm group 3)  has low/high range 48210 / 50218
+0: Sanity Checking: |          | 0/? [00:00<?, ?it/s]Sanity Checking DataLoader 0:   0%|          | 0/6 [00:00<?, ?it/s]Sanity Checking DataLoader 0:  17%|█▋        | 1/6 [00:00<00:04,  1.00it/s]Sanity Checking DataLoader 0:  33%|███▎      | 2/6 [00:01<00:02,  1.55it/s]Sanity Checking DataLoader 0:  50%|█████     | 3/6 [00:01<00:01,  1.89it/s]Sanity Checking DataLoader 0:  67%|██████▋   | 4/6 [00:01<00:00,  2.13it/s]Sanity Checking DataLoader 0:  83%|████████▎ | 5/6 [00:02<00:00,  2.30it/s]Sanity Checking DataLoader 0: 100%|██████████| 6/6 [00:02<00:00,  2.43it/s]                                                                           [2026-03-30 11:00:36,416][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (pid 234790, global_rank 0, model comm group 0)  has low/high range 0 / 2008
+1: [2026-03-30 11:00:36,417][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234787, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,417][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234788, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,417][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234789, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:36,417][anemoi.training.data.dataset.singledataset][INFO] - Worker 0 (train, pid 234790, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,427][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234791, global_rank 2, model comm group 2)  has low/high range 34148 / 36156
+2: [2026-03-30 11:00:36,429][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234791, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,431][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234792, global_rank 1, model comm group 1)  has low/high range 18078 / 20086
+0: [2026-03-30 11:00:36,432][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234793, global_rank 0, model comm group 0)  has low/high range 2008 / 4016
+1: [2026-03-30 11:00:36,433][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234792, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,433][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (pid 234794, global_rank 3, model comm group 3)  has low/high range 50218 / 52226
+0: [2026-03-30 11:00:36,434][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234793, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,435][anemoi.training.data.dataset.singledataset][INFO] - Worker 1 (train, pid 234794, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,440][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234795, global_rank 2, model comm group 2)  has low/high range 36156 / 38164
+2: [2026-03-30 11:00:36,442][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234795, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:36,445][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234796, global_rank 0, model comm group 0)  has low/high range 4016 / 6024
+3: [2026-03-30 11:00:36,447][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234797, global_rank 3, model comm group 3)  has low/high range 52226 / 54234
+0: [2026-03-30 11:00:36,448][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234796, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,448][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (pid 234798, global_rank 1, model comm group 1)  has low/high range 20086 / 22094
+3: [2026-03-30 11:00:36,449][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234797, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,449][anemoi.training.data.dataset.singledataset][INFO] - Worker 2 (train, pid 234798, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,454][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234799, global_rank 2, model comm group 2)  has low/high range 38164 / 40172
+2: [2026-03-30 11:00:36,456][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234799, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:36,458][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234800, global_rank 0, model comm group 0)  has low/high range 6024 / 8032
+0: [2026-03-30 11:00:36,459][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234800, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,461][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234801, global_rank 1, model comm group 1)  has low/high range 22094 / 24102
+3: [2026-03-30 11:00:36,461][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (pid 234802, global_rank 3, model comm group 3)  has low/high range 54234 / 56242
+1: [2026-03-30 11:00:36,463][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234801, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,463][anemoi.training.data.dataset.singledataset][INFO] - Worker 3 (train, pid 234802, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,467][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234803, global_rank 2, model comm group 2)  has low/high range 40172 / 42180
+2: [2026-03-30 11:00:36,469][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234803, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:36,469][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234804, global_rank 0, model comm group 0)  has low/high range 8032 / 10040
+0: [2026-03-30 11:00:36,471][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234804, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,475][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234805, global_rank 1, model comm group 1)  has low/high range 24102 / 26110
+3: [2026-03-30 11:00:36,475][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (pid 234806, global_rank 3, model comm group 3)  has low/high range 56242 / 58250
+1: [2026-03-30 11:00:36,477][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234805, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,477][anemoi.training.data.dataset.singledataset][INFO] - Worker 4 (train, pid 234806, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,481][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234807, global_rank 2, model comm group 2)  has low/high range 42180 / 44188
+0: [2026-03-30 11:00:36,482][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234808, global_rank 0, model comm group 0)  has low/high range 10040 / 12048
+2: [2026-03-30 11:00:36,483][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234807, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:36,483][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234808, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,488][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234809, global_rank 1, model comm group 1)  has low/high range 26110 / 28118
+3: [2026-03-30 11:00:36,488][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (pid 234810, global_rank 3, model comm group 3)  has low/high range 58250 / 60258
+1: [2026-03-30 11:00:36,490][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234809, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,490][anemoi.training.data.dataset.singledataset][INFO] - Worker 5 (train, pid 234810, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,494][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234811, global_rank 2, model comm group 2)  has low/high range 44188 / 46196
+0: [2026-03-30 11:00:36,494][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234812, global_rank 0, model comm group 0)  has low/high range 12048 / 14056
+0: [2026-03-30 11:00:36,497][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234812, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:36,497][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234811, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,502][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234813, global_rank 1, model comm group 1)  has low/high range 28118 / 30126
+1: [2026-03-30 11:00:36,503][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234813, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,503][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (pid 234814, global_rank 3, model comm group 3)  has low/high range 60258 / 62266
+3: [2026-03-30 11:00:36,505][anemoi.training.data.dataset.singledataset][INFO] - Worker 6 (train, pid 234814, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:36,508][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234815, global_rank 0, model comm group 0)  has low/high range 14056 / 16064
+2: [2026-03-30 11:00:36,508][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234816, global_rank 2, model comm group 2)  has low/high range 46196 / 48204
+2: [2026-03-30 11:00:36,511][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234816, glob. rank 2, model comm group 2, group_rank 0, seed group id 2, base_seed 3462325, sanity rnd 0.463685)
+0: [2026-03-30 11:00:36,511][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234815, glob. rank 0, model comm group 0, group_rank 0, seed group id 0, base_seed 3462325, sanity rnd 0.463685)
+1: [2026-03-30 11:00:36,519][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234822, global_rank 1, model comm group 1)  has low/high range 30126 / 32134
+1: [2026-03-30 11:00:36,522][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234822, glob. rank 1, model comm group 1, group_rank 0, seed group id 1, base_seed 3462325, sanity rnd 0.463685)
+3: [2026-03-30 11:00:36,525][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (pid 234828, global_rank 3, model comm group 3)  has low/high range 62266 / 64274
+3: [2026-03-30 11:00:36,529][anemoi.training.data.dataset.singledataset][INFO] - Worker 7 (train, pid 234828, glob. rank 3, model comm group 3, group_rank 0, seed group id 3, base_seed 3462325, sanity rnd 0.463685)
+2: [2026-03-30 11:00:37,405][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+0: [STARTUP] on_train_start                            elapsed= 18.647s  delta=  4.677s
+0: [2026-03-30 11:00:37,419][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+1: [2026-03-30 11:00:37,434][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+3: [2026-03-30 11:00:37,445][anemoi.models.data_indices.collection][INFO] - The order of the variables in the model matches the order in the data.
+0: Training: |          | 0/? [00:00<?, ?it/s]Training: |          | 0/? [00:00<?, ?it/s]Epoch 0: |          | 0/? [00:00<?, ?it/s] [STARTUP] first batch start                         elapsed= 22.837s  delta=  4.190s
+0: [STARTUP] first batch end (compile done)            elapsed= 24.298s  delta=  1.461s
+0: Epoch 0: |          | 1/? [00:01<00:00,  0.68it/s]Epoch 0: |          | 1/? [00:01<00:00,  0.68it/s, train_weighted_mse_loss_step=0.664][STARTUP] first batch start                         elapsed= 24.306s  delta=  0.009s
+0: Epoch 0: |          | 2/? [00:02<00:00,  0.80it/s, train_weighted_mse_loss_step=0.664]Epoch 0: |          | 2/? [00:02<00:00,  0.80it/s, train_weighted_mse_loss_step=0.663]Epoch 0: |          | 3/? [00:03<00:00,  0.85it/s, train_weighted_mse_loss_step=0.663]Epoch 0: |          | 3/? [00:03<00:00,  0.85it/s, train_weighted_mse_loss_step=0.650]Epoch 0: |          | 4/? [00:04<00:00,  0.88it/s, train_weighted_mse_loss_step=0.650]Epoch 0: |          | 4/? [00:04<00:00,  0.88it/s, train_weighted_mse_loss_step=0.623]Epoch 0: |          | 5/? [00:05<00:00,  0.90it/s, train_weighted_mse_loss_step=0.623]Epoch 0: |          | 5/? [00:05<00:00,  0.90it/s, train_weighted_mse_loss_step=0.582]Epoch 0: |          | 6/? [00:06<00:00,  0.91it/s, train_weighted_mse_loss_step=0.582]Epoch 0: |          | 6/? [00:06<00:00,  0.91it/s, train_weighted_mse_loss_step=0.537]Epoch 0: |          | 7/? [00:07<00:00,  0.92it/s, train_weighted_mse_loss_step=0.537]Epoch 0: |          | 7/? [00:07<00:00,  0.92it/s, train_weighted_
+0: mse_loss_step=0.487]Epoch 0: |          | 8/? [00:08<00:00,  0.92it/s, train_weighted_mse_loss_step=0.487]Epoch 0: |          | 8/? [00:08<00:00,  0.92it/s, train_weighted_mse_loss_step=0.436]Epoch 0: |          | 9/? [00:09<00:00,  0.93it/s, train_weighted_mse_loss_step=0.436]Epoch 0: |          | 9/? [00:09<00:00,  0.93it/s, train_weighted_mse_loss_step=0.386]Epoch 0: |          | 10/? [00:10<00:00,  0.93it/s, train_weighted_mse_loss_step=0.386]Epoch 0: |          | 10/? [00:10<00:00,  0.93it/s, train_weighted_mse_loss_step=0.345]Epoch 0: |          | 11/? [00:11<00:00,  0.92it/s, train_weighted_mse_loss_step=0.345]Epoch 0: |          | 11/? [00:11<00:00,  0.92it/s, train_weighted_mse_loss_step=0.314]Epoch 0: |          | 12/? [00:12<00:00,  0.93it/s, train_weighted_mse_loss_step=0.314]Epoch 0: |          | 12/? [00:12<00:00,  0.93it/s, train_weighted_mse_loss_step=0.290]Epoch 0: |          | 13/? [00:13<00:00,  0.93it/s, train_weighted_mse_loss_step=0.290]Epoch 0: |          | 13/? [00:13<00:00
+0: ,  0.93it/s, train_weighted_mse_loss_step=0.276]Epoch 0: |          | 14/? [00:14<00:00,  0.93it/s, train_weighted_mse_loss_step=0.276]Epoch 0: |          | 14/? [00:14<00:00,  0.93it/s, train_weighted_mse_loss_step=0.270]Epoch 0: |          | 15/? [00:16<00:00,  0.94it/s, train_weighted_mse_loss_step=0.270]Epoch 0: |          | 15/? [00:16<00:00,  0.94it/s, train_weighted_mse_loss_step=0.259]Epoch 0: |          | 16/? [00:17<00:00,  0.94it/s, train_weighted_mse_loss_step=0.259]Epoch 0: |          | 16/? [00:17<00:00,  0.94it/s, train_weighted_mse_loss_step=0.253]Epoch 0: |          | 17/? [00:18<00:00,  0.94it/s, train_weighted_mse_loss_step=0.253]Epoch 0: |          | 17/? [00:18<00:00,  0.94it/s, train_weighted_mse_loss_step=0.250]Epoch 0: |          | 18/? [00:19<00:00,  0.94it/s, train_weighted_mse_loss_step=0.250]Epoch 0: |          | 18/? [00:19<00:00,  0.94it/s, train_weighted_mse_loss_step=0.243]Epoch 0: |          | 19/? [00:20<00:00,  0.94it/s, train_weighted_mse_loss_step=0.243]Epoch 0
+0: : |          | 19/? [00:20<00:00,  0.94it/s, train_weighted_mse_loss_step=0.235]Epoch 0: |          | 20/? [00:21<00:00,  0.94it/s, train_weighted_mse_loss_step=0.235]Epoch 0: |          | 20/? [00:21<00:00,  0.94it/s, train_weighted_mse_loss_step=0.225]Epoch 0: |          | 21/? [00:22<00:00,  0.95it/s, train_weighted_mse_loss_step=0.225]Epoch 0: |          | 21/? [00:22<00:00,  0.95it/s, train_weighted_mse_loss_step=0.223]Epoch 0: |          | 22/? [00:23<00:00,  0.95it/s, train_weighted_mse_loss_step=0.223]Epoch 0: |          | 22/? [00:23<00:00,  0.95it/s, train_weighted_mse_loss_step=0.215]Epoch 0: |          | 23/? [00:24<00:00,  0.95it/s, train_weighted_mse_loss_step=0.215]Epoch 0: |          | 23/? [00:24<00:00,  0.95it/s, train_weighted_mse_loss_step=0.207]Epoch 0: |          | 24/? [00:25<00:00,  0.95it/s, train_weighted_mse_loss_step=0.207]Epoch 0: |          | 24/? [00:25<00:00,  0.95it/s, train_weighted_mse_loss_step=0.201]Epoch 0: |          | 25/? [00:26<00:00,  0.95it/s, train_weigh
+0: ted_mse_loss_step=0.201]Epoch 0: |          | 25/? [00:26<00:00,  0.95it/s, train_weighted_mse_loss_step=0.195]Epoch 0: |          | 26/? [00:27<00:00,  0.95it/s, train_weighted_mse_loss_step=0.195]Epoch 0: |          | 26/? [00:27<00:00,  0.95it/s, train_weighted_mse_loss_step=0.189]Epoch 0: |          | 27/? [00:28<00:00,  0.95it/s, train_weighted_mse_loss_step=0.189]Epoch 0: |          | 27/? [00:28<00:00,  0.95it/s, train_weighted_mse_loss_step=0.185]Epoch 0: |          | 28/? [00:29<00:00,  0.95it/s, train_weighted_mse_loss_step=0.185]Epoch 0: |          | 28/? [00:29<00:00,  0.95it/s, train_weighted_mse_loss_step=0.178]Epoch 0: |          | 29/? [00:30<00:00,  0.94it/s, train_weighted_mse_loss_step=0.178]Epoch 0: |          | 29/? [00:30<00:00,  0.94it/s, train_weighted_mse_loss_step=0.173]Epoch 0: |          | 30/? [00:31<00:00,  0.94it/s, train_weighted_mse_loss_step=0.173]Epoch 0: |          | 30/? [00:31<00:00,  0.94it/s, train_weighted_mse_loss_step=0.170]Epoch 0: |          | 31/? [00:
+0: 32<00:00,  0.94it/s, train_weighted_mse_loss_step=0.170]Epoch 0: |          | 31/? [00:32<00:00,  0.94it/s, train_weighted_mse_loss_step=0.165]Epoch 0: |          | 32/? [00:33<00:00,  0.95it/s, train_weighted_mse_loss_step=0.165]Epoch 0: |          | 32/? [00:33<00:00,  0.95it/s, train_weighted_mse_loss_step=0.163]Epoch 0: |          | 33/? [00:34<00:00,  0.95it/s, train_weighted_mse_loss_step=0.163]Epoch 0: |          | 33/? [00:34<00:00,  0.95it/s, train_weighted_mse_loss_step=0.159]Epoch 0: |          | 34/? [00:35<00:00,  0.95it/s, train_weighted_mse_loss_step=0.159]Epoch 0: |          | 34/? [00:35<00:00,  0.95it/s, train_weighted_mse_loss_step=0.155]Epoch 0: |          | 35/? [00:36<00:00,  0.95it/s, train_weighted_mse_loss_step=0.155]Epoch 0: |          | 35/? [00:36<00:00,  0.95it/s, train_weighted_mse_loss_step=0.153]Epoch 0: |          | 36/? [00:37<00:00,  0.95it/s, train_weighted_mse_loss_step=0.153]Epoch 0: |          | 36/? [00:37<00:00,  0.95it/s, train_weighted_mse_loss_step=0.147]
+0: Epoch 0: |          | 37/? [00:38<00:00,  0.95it/s, train_weighted_mse_loss_step=0.147]Epoch 0: |          | 37/? [00:39<00:00,  0.95it/s, train_weighted_mse_loss_step=0.146]Epoch 0: |          | 38/? [00:40<00:00,  0.95it/s, train_weighted_mse_loss_step=0.146]Epoch 0: |          | 38/? [00:40<00:00,  0.95it/s, train_weighted_mse_loss_step=0.146]Epoch 0: |          | 39/? [00:41<00:00,  0.95it/s, train_weighted_mse_loss_step=0.146]Epoch 0: |          | 39/? [00:41<00:00,  0.95it/s, train_weighted_mse_loss_step=0.142]Epoch 0: |          | 40/? [00:42<00:00,  0.95it/s, train_weighted_mse_loss_step=0.142]Epoch 0: |          | 40/? [00:42<00:00,  0.95it/s, train_weighted_mse_loss_step=0.140]Epoch 0: |          | 41/? [00:43<00:00,  0.95it/s, train_weighted_mse_loss_step=0.140]Epoch 0: |          | 41/? [00:43<00:00,  0.95it/s, train_weighted_mse_loss_step=0.137]Epoch 0: |          | 42/? [00:44<00:00,  0.95it/s, train_weighted_mse_loss_step=0.137]Epoch 0: |          | 42/? [00:44<00:00,  0.95it/s, tra
+0: in_weighted_mse_loss_step=0.134]Epoch 0: |          | 43/? [00:45<00:00,  0.95it/s, train_weighted_mse_loss_step=0.134]Epoch 0: |          | 43/? [00:45<00:00,  0.95it/s, train_weighted_mse_loss_step=0.127]Epoch 0: |          | 44/? [00:46<00:00,  0.95it/s, train_weighted_mse_loss_step=0.127]Epoch 0: |          | 44/? [00:46<00:00,  0.95it/s, train_weighted_mse_loss_step=0.123]Epoch 0: |          | 45/? [00:47<00:00,  0.95it/s, train_weighted_mse_loss_step=0.123]Epoch 0: |          | 45/? [00:47<00:00,  0.95it/s, train_weighted_mse_loss_step=0.119]Epoch 0: |          | 46/? [00:48<00:00,  0.95it/s, train_weighted_mse_loss_step=0.119]Epoch 0: |          | 46/? [00:48<00:00,  0.95it/s, train_weighted_mse_loss_step=0.116]Epoch 0: |          | 47/? [00:49<00:00,  0.95it/s, train_weighted_mse_loss_step=0.116]Epoch 0: |          | 47/? [00:49<00:00,  0.95it/s, train_weighted_mse_loss_step=0.112]Epoch 0: |          | 48/? [00:50<00:00,  0.95it/s, train_weighted_mse_loss_step=0.112]Epoch 0: |          | 4
+0: 8/? [00:50<00:00,  0.95it/s, train_weighted_mse_loss_step=0.107]Epoch 0: |          | 49/? [00:51<00:00,  0.95it/s, train_weighted_mse_loss_step=0.107]Epoch 0: |          | 49/? [00:51<00:00,  0.95it/s, train_weighted_mse_loss_step=0.104]Epoch 0: |          | 50/? [00:52<00:00,  0.95it/s, train_weighted_mse_loss_step=0.104]Epoch 0: |          | 50/? [00:52<00:00,  0.95it/s, train_weighted_mse_loss_step=0.104]Epoch 0: |          | 51/? [00:53<00:00,  0.96it/s, train_weighted_mse_loss_step=0.104]Epoch 0: |          | 51/? [00:53<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0993]Epoch 0: |          | 52/? [00:54<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0993]Epoch 0: |          | 52/? [00:54<00:00,  0.96it/s, train_weighted_mse_loss_step=0.100] Epoch 0: |          | 53/? [00:55<00:00,  0.96it/s, train_weighted_mse_loss_step=0.100]Epoch 0: |          | 53/? [00:55<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0978]Epoch 0: |          | 54/? [00:56<00:00,  0.96it/s, train_weighted_mse_loss
+0: _step=0.0978]Epoch 0: |          | 54/? [00:56<00:00,  0.96it/s, train_weighted_mse_loss_step=0.098] Epoch 0: |          | 55/? [00:57<00:00,  0.96it/s, train_weighted_mse_loss_step=0.098]Epoch 0: |          | 55/? [00:57<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0953]Epoch 0: |          | 56/? [00:58<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0953]Epoch 0: |          | 56/? [00:58<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0949]Epoch 0: |          | 57/? [00:59<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0949]Epoch 0: |          | 57/? [00:59<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0935]Epoch 0: |          | 58/? [01:00<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0935]Epoch 0: |          | 58/? [01:00<00:00,  0.96it/s, train_weighted_mse_loss_step=0.092] Epoch 0: |          | 59/? [01:01<00:00,  0.96it/s, train_weighted_mse_loss_step=0.092]Epoch 0: |          | 59/? [01:01<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0885]Epoch 0: |          | 60/? [01:02
+0: <00:00,  0.96it/s, train_weighted_mse_loss_step=0.0885]Epoch 0: |          | 60/? [01:02<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0859]Epoch 0: |          | 61/? [01:03<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0859]Epoch 0: |          | 61/? [01:03<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0823]Epoch 0: |          | 62/? [01:04<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0823]Epoch 0: |          | 62/? [01:04<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0809]Epoch 0: |          | 63/? [01:05<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0809]Epoch 0: |          | 63/? [01:05<00:00,  0.96it/s, train_weighted_mse_loss_step=0.084] Epoch 0: |          | 64/? [01:06<00:00,  0.96it/s, train_weighted_mse_loss_step=0.084]Epoch 0: |          | 64/? [01:06<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0816]Epoch 0: |          | 65/? [01:07<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0816]Epoch 0: |          | 65/? [01:07<00:00,  0.96it/s, train_weighted_mse_loss_ste
+0: p=0.079] Epoch 0: |          | 66/? [01:08<00:00,  0.96it/s, train_weighted_mse_loss_step=0.079]Epoch 0: |          | 66/? [01:08<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0781]Epoch 0: |          | 67/? [01:09<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0781]Epoch 0: |          | 67/? [01:09<00:00,  0.96it/s, train_weighted_mse_loss_step=0.078] Epoch 0: |          | 68/? [01:10<00:00,  0.96it/s, train_weighted_mse_loss_step=0.078]Epoch 0: |          | 68/? [01:10<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0762]Epoch 0: |          | 69/? [01:11<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0762]Epoch 0: |          | 69/? [01:11<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0769]Epoch 0: |          | 70/? [01:12<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0769]Epoch 0: |          | 70/? [01:12<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0768]Epoch 0: |          | 71/? [01:13<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0768]Epoch 0: |          | 71/? [01:13<00:
+0: 00,  0.96it/s, train_weighted_mse_loss_step=0.0735]Epoch 0: |          | 72/? [01:15<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0735]Epoch 0: |          | 72/? [01:15<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0727]Epoch 0: |          | 73/? [01:16<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0727]Epoch 0: |          | 73/? [01:16<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0712]Epoch 0: |          | 74/? [01:17<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0712]Epoch 0: |          | 74/? [01:17<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0724]Epoch 0: |          | 75/? [01:18<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0724]Epoch 0: |          | 75/? [01:18<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0705]Epoch 0: |          | 76/? [01:19<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0705]Epoch 0: |          | 76/? [01:19<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0707]Epoch 0: |          | 77/? [01:20<00:00,  0.96it/s, train_weighted_mse_loss_step=0
+0: .0707]Epoch 0: |          | 77/? [01:20<00:00,  0.96it/s, train_weighted_mse_loss_step=0.069] Epoch 0: |          | 78/? [01:21<00:00,  0.96it/s, train_weighted_mse_loss_step=0.069]Epoch 0: |          | 78/? [01:21<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0683]Epoch 0: |          | 79/? [01:22<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0683]Epoch 0: |          | 79/? [01:22<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0687]Epoch 0: |          | 80/? [01:23<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0687]Epoch 0: |          | 80/? [01:23<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0693]Epoch 0: |          | 81/? [01:24<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0693]Epoch 0: |          | 81/? [01:24<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0675]Epoch 0: |          | 82/? [01:25<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0675]Epoch 0: |          | 82/? [01:25<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0672]Epoch 0: |          | 83/? [01:26<00:00
+0: ,  0.96it/s, train_weighted_mse_loss_step=0.0672]Epoch 0: |          | 83/? [01:26<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0676]Epoch 0: |          | 84/? [01:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0676]Epoch 0: |          | 84/? [01:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0669]Epoch 0: |          | 85/? [01:28<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0669]Epoch 0: |          | 85/? [01:28<00:00,  0.96it/s, train_weighted_mse_loss_step=0.066] Epoch 0: |          | 86/? [01:29<00:00,  0.96it/s, train_weighted_mse_loss_step=0.066]Epoch 0: |          | 86/? [01:29<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0655]Epoch 0: |          | 87/? [01:30<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0655]Epoch 0: |          | 87/? [01:30<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0656]Epoch 0: |          | 88/? [01:31<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0656]Epoch 0: |          | 88/? [01:31<00:00,  0.96it/s, train_weighted_mse_loss_step=0.06
+0: 5] Epoch 0: |          | 89/? [01:32<00:00,  0.96it/s, train_weighted_mse_loss_step=0.065]Epoch 0: |          | 89/? [01:32<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0636]Epoch 0: |          | 90/? [01:33<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0636]Epoch 0: |          | 90/? [01:33<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0622]Epoch 0: |          | 91/? [01:34<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0622]Epoch 0: |          | 91/? [01:34<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0644]Epoch 0: |          | 92/? [01:35<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0644]Epoch 0: |          | 92/? [01:35<00:00,  0.96it/s, train_weighted_mse_loss_step=0.062] Epoch 0: |          | 93/? [01:36<00:00,  0.96it/s, train_weighted_mse_loss_step=0.062]Epoch 0: |          | 93/? [01:36<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0613]Epoch 0: |          | 94/? [01:37<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0613]Epoch 0: |          | 94/? [01:37<00:00,  0
+0: .96it/s, train_weighted_mse_loss_step=0.0602]Epoch 0: |          | 95/? [01:38<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0602]Epoch 0: |          | 95/? [01:38<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0615]Epoch 0: |          | 96/? [01:39<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0615]Epoch 0: |          | 96/? [01:39<00:00,  0.96it/s, train_weighted_mse_loss_step=0.061] Epoch 0: |          | 97/? [01:40<00:00,  0.96it/s, train_weighted_mse_loss_step=0.061]Epoch 0: |          | 97/? [01:40<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0606]Epoch 0: |          | 98/? [01:41<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0606]Epoch 0: |          | 98/? [01:41<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0606]Epoch 0: |          | 99/? [01:42<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0606]Epoch 0: |          | 99/? [01:42<00:00,  0.96it/s, train_weighted_mse_loss_step=0.062] Epoch 0: |          | 100/? [01:43<00:00,  0.96it/s, train_weighted_mse_loss_step=0.062]
+0: Epoch 0: |          | 100/? [01:43<00:00,  0.96it/s, train_weighted_mse_loss_step=0.059]Epoch 0: |          | 101/? [01:44<00:00,  0.96it/s, train_weighted_mse_loss_step=0.059]Epoch 0: |          | 101/? [01:44<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0594]Epoch 0: |          | 102/? [01:45<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0594]Epoch 0: |          | 102/? [01:45<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0582]Epoch 0: |          | 103/? [01:46<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0582]Epoch 0: |          | 103/? [01:46<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0582]Epoch 0: |          | 104/? [01:47<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0582]Epoch 0: |          | 104/? [01:47<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0585]Epoch 0: |          | 105/? [01:48<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0585]Epoch 0: |          | 105/? [01:48<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0582]Epoch 0: |          | 106/? [01:49<0
+0: 0:00,  0.96it/s, train_weighted_mse_loss_step=0.0582]Epoch 0: |          | 106/? [01:49<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0591]Epoch 0: |          | 107/? [01:51<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0591]Epoch 0: |          | 107/? [01:51<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0579]Epoch 0: |          | 108/? [01:52<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0579]Epoch 0: |          | 108/? [01:52<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0573]Epoch 0: |          | 109/? [01:53<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0573]Epoch 0: |          | 109/? [01:53<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0587]Epoch 0: |          | 110/? [01:54<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0587]Epoch 0: |          | 110/? [01:54<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0581]Epoch 0: |          | 111/? [01:55<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0581]Epoch 0: |          | 111/? [01:55<00:00,  0.96it/s, train_weighted_ms
+0: e_loss_step=0.0564]Epoch 0: |          | 112/? [01:56<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0564]Epoch 0: |          | 112/? [01:56<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0578]Epoch 0: |          | 113/? [01:57<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0578]Epoch 0: |          | 113/? [01:57<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0556]Epoch 0: |          | 114/? [01:58<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0556]Epoch 0: |          | 114/? [01:58<00:00,  0.96it/s, train_weighted_mse_loss_step=0.057] Epoch 0: |          | 115/? [01:59<00:00,  0.96it/s, train_weighted_mse_loss_step=0.057]Epoch 0: |          | 115/? [01:59<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0564]Epoch 0: |          | 116/? [02:00<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0564]Epoch 0: |          | 116/? [02:00<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0557]Epoch 0: |          | 117/? [02:01<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0557]Epoch 0: |     
+0:      | 117/? [02:01<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0552]Epoch 0: |          | 118/? [02:02<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0552]Epoch 0: |          | 118/? [02:02<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0562]Epoch 0: |          | 119/? [02:03<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0562]Epoch 0: |          | 119/? [02:03<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0564]Epoch 0: |          | 120/? [02:04<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0564]Epoch 0: |          | 120/? [02:04<00:00,  0.96it/s, train_weighted_mse_loss_step=0.055] Epoch 0: |          | 121/? [02:05<00:00,  0.96it/s, train_weighted_mse_loss_step=0.055]Epoch 0: |          | 121/? [02:05<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0566]Epoch 0: |          | 122/? [02:06<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0566]Epoch 0: |          | 122/? [02:06<00:00,  0.96it/s, train_weighted_mse_loss_step=0.057] Epoch 0: |          | 123/? [02:07<00:00,  0.96it/
+0: s, train_weighted_mse_loss_step=0.057]Epoch 0: |          | 123/? [02:07<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0565]Epoch 0: |          | 124/? [02:08<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0565]Epoch 0: |          | 124/? [02:08<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0567]Epoch 0: |          | 125/? [02:09<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0567]Epoch 0: |          | 125/? [02:09<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0562]Epoch 0: |          | 126/? [02:10<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0562]Epoch 0: |          | 126/? [02:10<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0562]Epoch 0: |          | 127/? [02:11<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0562]Epoch 0: |          | 127/? [02:11<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0552]Epoch 0: |          | 128/? [02:12<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0552]Epoch 0: |          | 128/? [02:12<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0
+0: 539]Epoch 0: |          | 129/? [02:13<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0539]Epoch 0: |          | 129/? [02:13<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0547]Epoch 0: |          | 130/? [02:14<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0547]Epoch 0: |          | 130/? [02:14<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0537]Epoch 0: |          | 131/? [02:15<00:00,  0.97it/s, train_weighted_mse_loss_step=0.0537]Epoch 0: |          | 131/? [02:15<00:00,  0.97it/s, train_weighted_mse_loss_step=0.054] Epoch 0: |          | 132/? [02:17<00:00,  0.96it/s, train_weighted_mse_loss_step=0.054]Epoch 0: |          | 132/? [02:17<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0536]Epoch 0: |          | 133/? [02:18<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0536]Epoch 0: |          | 133/? [02:18<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0532]Epoch 0: |          | 134/? [02:19<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0532]Epoch 0: |          | 134/? [0
+0: 2:19<00:00,  0.96it/s, train_weighted_mse_loss_step=0.054] Epoch 0: |          | 135/? [02:20<00:00,  0.96it/s, train_weighted_mse_loss_step=0.054]Epoch 0: |          | 135/? [02:20<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0538]Epoch 0: |          | 136/? [02:21<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0538]Epoch 0: |          | 136/? [02:21<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0528]Epoch 0: |          | 137/? [02:22<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0528]Epoch 0: |          | 137/? [02:22<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0535]Epoch 0: |          | 138/? [02:23<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0535]Epoch 0: |          | 138/? [02:23<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0528]Epoch 0: |          | 139/? [02:24<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0528]Epoch 0: |          | 139/? [02:24<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0529]Epoch 0: |          | 140/? [02:25<00:00,  0.96it/s, train_weight
+0: ed_mse_loss_step=0.0529]Epoch 0: |          | 140/? [02:25<00:00,  0.96it/s, train_weighted_mse_loss_step=0.052] Epoch 0: |          | 141/? [02:26<00:00,  0.96it/s, train_weighted_mse_loss_step=0.052]Epoch 0: |          | 141/? [02:26<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0526]Epoch 0: |          | 142/? [02:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0526]Epoch 0: |          | 142/? [02:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0526]Epoch 0: |          | 143/? [02:28<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0526]Epoch 0: |          | 143/? [02:28<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0535]Epoch 0: |          | 144/? [02:29<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0535]Epoch 0: |          | 144/? [02:29<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0524]Epoch 0: |          | 145/? [02:30<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0524]Epoch 0: |          | 145/? [02:30<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0527]Epoch 0: |
+0:           | 146/? [02:31<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0527]Epoch 0: |          | 146/? [02:31<00:00,  0.96it/s, train_weighted_mse_loss_step=0.052] Epoch 0: |          | 147/? [02:32<00:00,  0.96it/s, train_weighted_mse_loss_step=0.052]Epoch 0: |          | 147/? [02:32<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0511]Epoch 0: |          | 148/? [02:33<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0511]Epoch 0: |          | 148/? [02:33<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0512]Epoch 0: |          | 149/? [02:34<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0512]Epoch 0: |          | 149/? [02:34<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0521]Epoch 0: |          | 150/? [02:36<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0521]Epoch 0: |          | 150/? [02:36<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0513]Epoch 0: |          | 151/? [02:37<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0513]Epoch 0: |          | 151/? [02:37<00:00,  0.
+0: 96it/s, train_weighted_mse_loss_step=0.0512]Epoch 0: |          | 152/? [02:38<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0512]Epoch 0: |          | 152/? [02:38<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0517]Epoch 0: |          | 153/? [02:39<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0517]Epoch 0: |          | 153/? [02:39<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0506]Epoch 0: |          | 154/? [02:40<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0506]Epoch 0: |          | 154/? [02:40<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0521]Epoch 0: |          | 155/? [02:41<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0521]Epoch 0: |          | 155/? [02:41<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0522]Epoch 0: |          | 156/? [02:42<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0522]Epoch 0: |          | 156/? [02:42<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0498]Epoch 0: |          | 157/? [02:43<00:00,  0.96it/s, train_weighted_mse_loss_st
+0: ep=0.0498]Epoch 0: |          | 157/? [02:43<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0498]Epoch 0: |          | 158/? [02:44<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0498]Epoch 0: |          | 158/? [02:44<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0513]Epoch 0: |          | 159/? [02:45<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0513]Epoch 0: |          | 159/? [02:45<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0513]Epoch 0: |          | 160/? [02:46<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0513]Epoch 0: |          | 160/? [02:46<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0492]Epoch 0: |          | 161/? [02:47<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0492]Epoch 0: |          | 161/? [02:47<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0487]Epoch 0: |          | 162/? [02:48<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0487]Epoch 0: |          | 162/? [02:48<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0506]Epoch 0: |          | 1
+0: 63/? [02:49<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0506]Epoch 0: |          | 163/? [02:49<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0518]Epoch 0: |          | 164/? [02:50<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0518]Epoch 0: |          | 164/? [02:50<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0544]Epoch 0: |          | 165/? [02:51<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0544]Epoch 0: |          | 165/? [02:51<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0561]Epoch 0: |          | 166/? [02:52<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0561]Epoch 0: |          | 166/? [02:52<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0497]Epoch 0: |          | 167/? [02:53<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0497]Epoch 0: |          | 167/? [02:53<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0525]Epoch 0: |          | 168/? [02:54<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0525]Epoch 0: |          | 168/? [02:54<00:00,  0.96it/s, trai
+0: n_weighted_mse_loss_step=0.0521]Epoch 0: |          | 169/? [02:55<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0521]Epoch 0: |          | 169/? [02:55<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0507]Epoch 0: |          | 170/? [02:56<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0507]Epoch 0: |          | 170/? [02:56<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0503]Epoch 0: |          | 171/? [02:57<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0503]Epoch 0: |          | 171/? [02:57<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0496]Epoch 0: |          | 172/? [02:58<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0496]Epoch 0: |          | 172/? [02:58<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0498]Epoch 0: |          | 173/? [02:59<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0498]Epoch 0: |          | 173/? [02:59<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0487]Epoch 0: |          | 174/? [03:00<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0487]E
+0: poch 0: |          | 174/? [03:00<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0483]Epoch 0: |          | 175/? [03:01<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0483]Epoch 0: |          | 175/? [03:01<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0484]Epoch 0: |          | 176/? [03:02<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0484]Epoch 0: |          | 176/? [03:02<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0484]Epoch 0: |          | 177/? [03:03<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0484]Epoch 0: |          | 177/? [03:03<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0471]Epoch 0: |          | 178/? [03:04<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0471]Epoch 0: |          | 178/? [03:04<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0484]Epoch 0: |          | 179/? [03:06<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0484]Epoch 0: |          | 179/? [03:06<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0468]Epoch 0: |          | 180/? [03:07<
+0: 00:00,  0.96it/s, train_weighted_mse_loss_step=0.0468]Epoch 0: |          | 180/? [03:07<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0473]Epoch 0: |          | 181/? [03:08<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0473]Epoch 0: |          | 181/? [03:08<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0488]Epoch 0: |          | 182/? [03:09<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0488]Epoch 0: |          | 182/? [03:09<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0474]Epoch 0: |          | 183/? [03:10<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0474]Epoch 0: |          | 183/? [03:10<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0467]Epoch 0: |          | 184/? [03:11<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0467]Epoch 0: |          | 184/? [03:11<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0462]Epoch 0: |          | 185/? [03:12<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0462]Epoch 0: |          | 185/? [03:12<00:00,  0.96it/s, train_weighted_m
+0: se_loss_step=0.0465]Epoch 0: |          | 186/? [03:13<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0465]Epoch 0: |          | 186/? [03:13<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0467]Epoch 0: |          | 187/? [03:14<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0467]Epoch 0: |          | 187/? [03:14<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0468]Epoch 0: |          | 188/? [03:15<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0468]Epoch 0: |          | 188/? [03:15<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0462]Epoch 0: |          | 189/? [03:16<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0462]Epoch 0: |          | 189/? [03:16<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0472]Epoch 0: |          | 190/? [03:17<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0472]Epoch 0: |          | 190/? [03:17<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0471]Epoch 0: |          | 191/? [03:18<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0471]Epoch 0: |   
+0:        | 191/? [03:18<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0497]Epoch 0: |          | 192/? [03:19<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0497]Epoch 0: |          | 192/? [03:19<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0482]Epoch 0: |          | 193/? [03:20<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0482]Epoch 0: |          | 193/? [03:20<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0479]Epoch 0: |          | 194/? [03:21<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0479]Epoch 0: |          | 194/? [03:21<00:00,  0.96it/s, train_weighted_mse_loss_step=0.047] Epoch 0: |          | 195/? [03:22<00:00,  0.96it/s, train_weighted_mse_loss_step=0.047]Epoch 0: |          | 195/? [03:22<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0472]Epoch 0: |          | 196/? [03:23<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0472]Epoch 0: |          | 196/? [03:23<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0479]Epoch 0: |          | 197/? [03:24<00:00,  0.96i
+0: t/s, train_weighted_mse_loss_step=0.0479]Epoch 0: |          | 197/? [03:24<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0464]Epoch 0: |          | 198/? [03:25<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0464]Epoch 0: |          | 198/? [03:25<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0471]Epoch 0: |          | 199/? [03:26<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0471]Epoch 0: |          | 199/? [03:26<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0464]Epoch 0: |          | 200/? [03:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0464]Epoch 0: |          | 200/? [03:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0459]Epoch 0: |          | 200/? [03:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0459, train_weighted_mse_loss_epoch=0.108][2026-03-30 11:04:09,323][pytorch_lightning.utilities.rank_zero][INFO] - `Trainer.fit` stopped: `max_steps=200` reached.
+0: Epoch 0: |          | 200/? [03:27<00:00,  0.96it/s, train_weighted_mse_loss_step=0.0459, train_weighted_mse_loss_epoch=0.108]
+0: [2026-03-30 11:04:09,991][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/inference-aifs-by_time-epoch_000-step_000200.ckpt
+0: [2026-03-30 11:04:09,992][anemoi.utils.checkpoints][INFO] - Saving metadata to inference-aifs-by_time-epoch_000-step_000200/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:09,994][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to inference-aifs-by_time-epoch_000-step_000200/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:09,994][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to inference-aifs-by_time-epoch_000-step_000200/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:12,681][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/aifs-by_time-epoch_000-step_000200.ckpt
+0: [2026-03-30 11:04:12,682][anemoi.utils.checkpoints][INFO] - Saving metadata to archive/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:12,684][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to archive/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:12,684][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to archive/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:13,270][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/inference-last.ckpt
+0: [2026-03-30 11:04:13,270][anemoi.utils.checkpoints][INFO] - Saving metadata to inference-last/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:13,272][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to inference-last/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:13,273][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to inference-last/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:15,948][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/last.ckpt
+0: [2026-03-30 11:04:15,948][anemoi.utils.checkpoints][INFO] - Saving metadata to archive/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:15,950][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to archive/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:15,950][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to archive/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:16,553][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/inference-aifs-by_epoch-epoch_000-val_wmse_0.000e+00.ckpt
+0: [2026-03-30 11:04:16,553][anemoi.utils.checkpoints][INFO] - Saving metadata to inference-aifs-by_epoch-epoch_000-val_wmse_0.000e+00/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:16,555][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to inference-aifs-by_epoch-epoch_000-val_wmse_0.000e+00/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:16,555][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to inference-aifs-by_epoch-epoch_000-val_wmse_0.000e+00/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:19,242][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/aifs-by_epoch-epoch_000-val_wmse_0.000e+00.ckpt
+0: [2026-03-30 11:04:19,243][anemoi.utils.checkpoints][INFO] - Saving metadata to archive/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:19,245][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to archive/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:19,245][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to archive/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:19,864][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/inference-last.ckpt
+0: [2026-03-30 11:04:19,864][anemoi.utils.checkpoints][INFO] - Saving metadata to inference-last/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:19,865][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to inference-last/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:19,866][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to inference-last/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:24,565][anemoi.utils.checkpoints][INFO] - Adding extra information to checkpoint /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/output/checkpoint/bd4d65da-cd99-4b24-9381-f62d12f95577/last.ckpt
+0: [2026-03-30 11:04:24,565][anemoi.utils.checkpoints][INFO] - Saving metadata to archive/anemoi-metadata/ai-models.json
+0: [2026-03-30 11:04:24,566][anemoi.utils.checkpoints][INFO] - Saving supporting array `latitudes` to archive/anemoi-metadata/latitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:24,567][anemoi.utils.checkpoints][INFO] - Saving supporting array `longitudes` to archive/anemoi-metadata/longitudes.numpy (shape=(40320,), dtype=float64)
+0: [2026-03-30 11:04:24,863][anemoi.training.train.profiler][INFO] - Generating Profiler reports
+0:  Benchmark Profiler Summary ! 📖
+0:  SLURM NODE(s) nid011163 !
+0:  SLURM JOB ID 3462325 !
+0:  TIMESTAMP 30/03/2026 11:04:24 !
+0: Time Profiling ⏰
+0: +----+----------------------------------------------------------------+--------------+-----------+------------+----------------------------+
+0: |    | name                                                           |   total_time |   n_calls |   avg_time | category                   |
+0: |----+----------------------------------------------------------------+--------------+-----------+------------+----------------------------|
+0: | 54 | run_training_epoch                                             |    207.72    |         1 |  207.72    | run_training_epoch         |
+0: | 50 | run_training_batch                                             |    205.985   |       200 |    1.02992 | run_training_batch         |
+0: | 34 | [_TrainingEpochLoop].train_dataloader_next                     |      0.02826 |       200 |    0.00014 | _TrainingEpochLoop         |
+0: | 15 | [_EvaluationLoop].val_next                                     |      0.61898 |         6 |    0.10316 | _EvaluationLoop            |
+0: | 37 | [Strategy]DDPGroupStrategy.training_step                       |     55.0955  |       200 |    0.27548 | Strategy                   |
+0: | 45 | [Strategy]DDPGroupStrategy.backward                            |    148.22    |       200 |    0.7411  | Strategy                   |
+0: | 17 | [Strategy]DDPGroupStrategy.batch_to_device                     |      1.11218 |       206 |    0.0054  | Strategy                   |
+0: | 20 | [Strategy]DDPGroupStrategy.validation_step                     |      2.44888 |         6 |    0.40815 | Strategy                   |
+0: | 40 | [LightningModule]GraphForecaster.optimizer_zero_grad           |      0.25944 |       200 |    0.0013  | LightningModule            |
+0: | 49 | [LightningModule]GraphForecaster.optimizer_step                |    205.657   |       200 |    1.02828 | LightningModule            |
+0: | 48 | [LightningModule]GraphForecaster.configure_gradient_clipping   |      0.12688 |       200 |    0.00063 | LightningModule            |
+0: | 51 | [LightningModule]GraphForecaster.lr_scheduler_step             |      0.00459 |       200 |    2e-05   | LightningModule            |
+0: |  3 | [LightningModule]GraphForecaster.setup                         |      2e-05   |         1 |    2e-05   | LightningModule            |
+0: | 16 | [LightningModule]GraphForecaster.transfer_batch_to_device      |      0.03097 |       206 |    0.00015 | LightningModule            |
+0: | 10 | [LightningModule]GraphForecaster.on_validation_model_eval      |      0.00242 |         1 |    0.00242 | LightningModule            |
+0: |  4 | [LightningModule]GraphForecaster.configure_optimizers          |      0.00088 |         1 |    0.00088 | LightningModule            |
+0: | 64 | [LightningDataModule]AnemoiDatasetsDataModule.teardown         |      0       |         1 |    0       | LightningDataModule        |
+0: | 57 | [LightningDataModule]AnemoiDatasetsDataModule.state_dict       |      1e-05   |         4 |    0       | LightningDataModule        |
+0: |  0 | [LightningDataModule]AnemoiDatasetsDataModule.setup            |      1e-05   |         1 |    1e-05   | LightningDataModule        |
+0: | 29 | [LightningDataModule]AnemoiDatasetsDataModule.train_dataloader |      0.00052 |         1 |    0.00052 | LightningDataModule        |
+0: |  9 | [LightningDataModule]AnemoiDatasetsDataModule.val_dataloader   |      0.35383 |         1 |    0.35383 | LightningDataModule        |
+0: |  0 | *Callback_AnemoiCheckpoint                                     |     19.6696  |      2460 |   19.4279  | *Callback_AnemoiCheckpoint |
+0: +----+----------------------------------------------------------------+--------------+-----------+------------+----------------------------+
+0: 
+0: Speed Profiling 🏎
+0: +----+-------------------------------------------------+------------+
+0: |    | metric                                          |      value |
+0: |----+-------------------------------------------------+------------|
+0: |  0 | training_avg_throughput                         |    0.95428 |
+0: |  1 | training_avg_throughput_per_sample              |    0.11929 |
+0: |  2 | validation_avg_throughput                       |    1.88292 |
+0: |  3 | validation_avg_throughput_per_sample            |    0.23536 |
+0: |  4 | avg_training_dataloader_throughput              | 7077.53    |
+0: |  5 | avg_training_dataloader_throughput_per_sample   |  884.692   |
+0: |  6 | avg_validation_dataloader_throughput            |    9.69343 |
+0: |  7 | avg_validation_dataloader_throughput_per_sample |    1.21168 |
+0: +----+-------------------------------------------------+------------+
+0: 
+2: [2026-03-30 11:04:25,851][anemoi.training.train.profiler][INFO] - Generating Profiler reports
+1: [2026-03-30 11:04:25,915][anemoi.training.train.profiler][INFO] - Generating Profiler reports
+3: [2026-03-30 11:04:26,080][anemoi.training.train.profiler][INFO] - Generating Profiler reports
+0: Collecting data...
+0: Generating '/local/user/1483804349/nsys-report-4029.qdstrm'
+0: [1/1] [0%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [0%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [11%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [14%                         ] o96_1node_3
+0: 462325_nsys_rank0.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%           
+2: Collecting data...
+2: Generating '/local/user/1483804349/nsys-report-7157.qdstrm'
+2: [1/1] [0%                          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [0%                          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [10%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [11%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [14%                         ] o96_1node_3
+2: 462325_nsys_rank2.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=16%           
+1: Collecting data...
+1: Generating '/local/user/1483804349/nsys-report-b8c8.qdstrm'
+3: Collecting data...
+3: Generating '/local/user/1483804349/nsys-report-bbab.qdstrm'
+1: [1/1] [0%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [0%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [10%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [10%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [10%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [10%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [10%                         ] o96_1node_3
+1: 462325_nsys_rank1.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [11%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=15%           
+1:              ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=17%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=17%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank1.nsys-
+3: [1/1] [0%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [0%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3
+3: 462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [5%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [6%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [9%                          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [11%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [12%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [13%            
+3:              ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [13%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [14%                         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-
+0:              ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=17%                        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==18%                       ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==19%                       ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==20%                       ] o96_1node_3462325_nsys_rank0.nsys-
+0: rep[1/1] [==21%                       ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===22%                      ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===23%                      ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===24%                      ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [====25%                     ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [====26%                     ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [====27%                     ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [====28%                     ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=====29%                    ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=====30%                    ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=====31%                    ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=====32%                    ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [======33%                   ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [======34%                   ] o96_1nod
+0: e_3462325_nsys_rank0.nsys-rep[1/1] [======35%                   ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=======36%                  ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=======37%                  ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=======38%                  ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=======39%                  ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [========40%                 ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [========41%                 ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [========42%                 ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=========43%                ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=========44%                ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=========45%                ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=========46%                ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==========47%               ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==========48
+0: %               ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==========49%               ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===========50%              ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===========51%              ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===========52%              ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===========53%              ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [============54%             ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [============55%             ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [============56%             ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [============57%             ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=============58%            ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=============59%            ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=============60%            ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==============61%           ] o96_1node_3462325_nsys_rank0.ns
+0: ys-rep[1/1] [==============62%           ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==============63%           ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==============64%           ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===============65%          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===============66%          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===============67%          ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [================68%         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [================69%         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [================70%         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [================71%         ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=================72%        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=================73%        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=================74%        ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==================75%       ] o96_1
+3: rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=17%                        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==18%                       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==19%                       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==20%                       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==21%                       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===22%                      ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===23%                      ] o96_1nod
+2:              ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=15%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=17%                        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==18%                       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==19%                       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==20%                       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==21%                       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===22%                      ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===23%                      ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===24%                      ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [====25%                     ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [====26%                     ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [====27%                     ] o96_1node_3462325_nsys_rank2.nsys-
+2: rep[1/1] [====28%                     ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=====29%                    ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=====30%                    ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=====31%                    ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=====32%                    ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [======33%                   ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [======34%                   ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [======35%                   ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=======36%                  ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=======37%                  ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=======38%                  ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=======39%                  ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [========40%                 ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [========41%                 ] o96_1nod
+1: rep[1/1] [=17%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=16%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=17%                        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==18%                       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==19%                       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==20%                       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==21%                       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===22%                      ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===23%                      ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===24%                      ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [====25%                     ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [====26%                     ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [====27%                     ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [====28%                     ] o96_1nod
+2: e_3462325_nsys_rank2.nsys-rep[1/1] [========42%                 ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=========43%                ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=========44%                ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=========45%                ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=========46%                ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==========47%               ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==========48%               ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==========49%               ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===========50%              ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===========51%              ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===========52%              ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===========53%              ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [============54%             ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [============
+1: e_3462325_nsys_rank1.nsys-rep[1/1] [=====29%                    ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=====30%                    ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=====31%                    ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=====32%                    ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [======33%                   ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [======34%                   ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [======35%                   ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=======36%                  ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=======37%                  ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=======38%                  ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=======39%                  ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [========40%                 ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [========41%                 ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [========42% 
+3: e_3462325_nsys_rank3.nsys-rep[1/1] [===24%                      ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [====25%                     ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [====26%                     ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [====27%                     ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [====28%                     ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=====29%                    ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=====30%                    ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=====31%                    ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=====32%                    ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [======33%                   ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [======34%                   ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [======35%                   ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=======36%                  ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=======37%  
+2: 55%             ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [============56%             ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [============57%             ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=============58%            ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=============59%            ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=============60%            ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==============61%           ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==============62%           ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==============63%           ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==============64%           ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===============65%          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===============66%          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===============67%          ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [================68%         ] o96_1node_3462325_nsys_rank2.ns
+1:                 ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=========43%                ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=========44%                ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=========45%                ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=========46%                ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==========47%               ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==========48%               ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==========49%               ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===========50%              ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===========51%              ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===========52%              ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===========53%              ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [============54%             ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [============55%             ] o96_1node_3462325_nsys_rank1.ns
+3:                 ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=======38%                  ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=======39%                  ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [========40%                 ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [========41%                 ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [========42%                 ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=========43%                ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=========44%                ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=========45%                ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=========46%                ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==========47%               ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==========48%               ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==========49%               ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===========50%              ] o96_1node_3462325_nsys_rank3.ns
+2: ys-rep[1/1] [================69%         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [================70%         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [================71%         ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=================72%        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=================73%        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=================74%        ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==================75%       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==================76%       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==================77%       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [==================78%       ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===================79%      ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===================80%      ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===================81%      ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [===================82%      ] o96_1
+1: ys-rep[1/1] [============56%             ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [============57%             ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=============58%            ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=============59%            ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=============60%            ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==============61%           ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==============62%           ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==============63%           ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==============64%           ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===============65%          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===============66%          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===============67%          ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [================68%         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [================69%         ] o96_1
+3: ys-rep[1/1] [===========51%              ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===========52%              ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===========53%              ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [============54%             ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [============55%             ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [============56%             ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [============57%             ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=============58%            ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=============59%            ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=============60%            ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==============61%           ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==============62%           ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==============63%           ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==============64%           ] o96_1
+1: node_3462325_nsys_rank1.nsys-rep[1/1] [================70%         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [================71%         ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=================72%        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=================73%        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=================74%        ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==================75%       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==================76%       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==================77%       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [==================78%       ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===================79%      ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===================80%      ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===================81%      ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [===================82%      ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=========
+3: node_3462325_nsys_rank3.nsys-rep[1/1] [===============65%          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===============66%          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===============67%          ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [================68%         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [================69%         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [================70%         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [================71%         ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=================72%        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=================73%        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=================74%        ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==================75%       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==================76%       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [==================77%       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=========
+0: node_3462325_nsys_rank0.nsys-rep[1/1] [==================76%       ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==================77%       ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [==================78%       ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===================79%      ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===================80%      ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===================81%      ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [===================82%      ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [====================83%     ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [====================84%     ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [====================85%     ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [=====================86%    ] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank0.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank0.nsys-rep
+0: Generated:
+0:     /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/pretraining/../logs/o96_1node_3462325_nsys_rank0.nsys-rep
+2: node_3462325_nsys_rank2.nsys-rep[1/1] [====================83%     ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [====================84%     ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [====================85%     ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=====================86%    ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [=====================87%    ] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank2.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank2.nsys-rep
+2: Generated:
+2:     /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/pretraining/../logs/o96_1node_3462325_nsys_rank2.nsys-rep
+1: ===========83%     ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [====================84%     ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [====================85%     ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [=====================86%    ] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank1.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank1.nsys-rep
+1: Generated:
+1:     /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/pretraining/../logs/o96_1node_3462325_nsys_rank1.nsys-rep
+3: =========78%       ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===================79%      ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===================80%      ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===================81%      ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [===================82%      ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [====================83%     ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [====================84%     ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [====================85%     ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [=====================86%    ] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank3.nsys-rep[1/1] [========================100%] o96_1node_3462325_nsys_rank3.nsys-rep
+3: Generated:
+3:     /lus/lfs1aip2/projects/u6fw/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2/pretraining/../logs/o96_1node_3462325_nsys_rank3.nsys-rep
+⏱ TRAINING TIME: 334 seconds
+~/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/10_startup_2
+✅ Experiment finished.

@@ -1,0 +1,9 @@
+,metric,value
+0,training_avg_throughput,0.94266
+1,training_avg_throughput_per_sample,0.11783
+2,validation_avg_throughput,1.70578
+3,validation_avg_throughput_per_sample,0.21322
+4,avg_training_dataloader_throughput,7151.96888
+5,avg_training_dataloader_throughput_per_sample,893.99611
+6,avg_validation_dataloader_throughput,9.25061
+7,avg_validation_dataloader_throughput_per_sample,1.15633
