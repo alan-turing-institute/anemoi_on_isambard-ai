@@ -12,7 +12,52 @@ This report documents a systematic investigation of Anemoi training performance 
 2. **How efficiently does Anemoi scale across 4 GPUs within a single node (NVLink)?**
 3. **How does multi-node scaling behave over Slingshot, and where does communication become the bottleneck?**
 
-The report is organised as follows. The **Initial Scaling Tests** section presents epoch-level strong scaling results for both `O96` and `N320` datasets, establishing the wall-clock optimum and identifying setup overhead as a growing cost at large node counts. The **NCCL Benchmarking** section establishes that the physical interconnect is not the source of the observed overhead, motivating the software-focused investigation that follows. The **Single GPU** section characterises the hardware utilisation and software bottleneck profile of a single GH200, working through a sequence of optimisation actions culminating in a clean hardware-bound baseline. The **Single Node Multi-GPU Scaling** section investigates intra-node DDP overhead and its node-to-node variability. The **Multi-Node Scaling** section quantifies per-step scaling efficiency from 2 to 100 nodes, characterises NCCL communication behaviour, and measures startup overhead growth. The report concludes with a **Summary and Conclusions** section synthesising the findings across all tiers.
+The report is organised as follows. An **Executive Summary** immediately follows this introduction with the key findings and recommendations across all tiers. The **Initial Scaling Tests** section presents epoch-level strong scaling results for both `O96` and `N320` datasets, establishing the wall-clock optimum and identifying setup overhead as a growing cost at large node counts. The **NCCL Benchmarking** section establishes that the physical interconnect is not the source of the observed overhead, motivating the software-focused investigation that follows. The **Single GPU** section characterises the hardware utilisation and software bottleneck profile of a single GH200, working through a sequence of optimisation actions culminating in a clean hardware-bound baseline. The **Single Node Multi-GPU Scaling** section investigates intra-node DDP overhead and its node-to-node variability. The **Multi-Node Scaling** section quantifies per-step scaling efficiency from 2 to 100 nodes, characterises NCCL communication behaviour, and measures startup overhead growth.
+
+## Executive Summary
+
+Anemoi training on Isambard-AI GH200 nodes was characterised across three tiers: single GPU, single node (4-GPU NVLink), and multi-node (Slingshot interconnect). The findings at each tier feed directly into the next, and together identify a clear set of bottlenecks and the configurations under which Anemoi scales well.
+
+### Single GPU
+
+The `O96` model on a single GH200 achieves ~0.97 s/step (7.93 samples/s) in eager mode. Profiling establishes that the workload is **memory-bandwidth bound**: GPU utilisation is 92.8%, but Tensor Core utilisation is only ~1.2% and Model FLOP Utilisation is ~20% of the GH200 dense BF16 peak. The GPU is continuously busy, but the work is dominated by memory-bound element-wise and graph-indexing kernels (`nvjet_hsh`, `indexSelectLargeIndex`) rather than the dense matrix operations that Tensor Cores accelerate.
+
+The main software bottleneck identified was CPU dispatch overhead: ~3,130 kernel launches per step with frequent `aten::nonzero` synchronisation stalls. `torch.compile` fused over 50,000 element-wise operations via Triton and removed all `cudaStreamSynchronize` stalls, but did not produce a measurable throughput improvement — the workload is memory-bandwidth bound and kernel fusion alone cannot change that. The hardware ceiling is HBM3 memory bandwidth, which is a characteristic of the model's arithmetic intensity and cannot be removed without architectural changes.
+
+Activation checkpointing (`num_chunks: 2`) is required to fit within 96 GB HBM3e (34.1 GB peak vs 95.1 GB theoretical). Disabling it does not change step time, confirming the bottleneck is not recompute overhead.
+
+### Single Node (4 GPUs, NVLink)
+
+On a correctly configured node, 4-GPU scaling efficiency is **95.7%** (44 ms overhead, 987 ms → 1,031 ms/step). The NVLink `All-Reduce` is fully overlapped with the backward pass and is not on the critical path.
+
+Early runs showed 76.5% efficiency due to `CUDA_LAUNCH_BLOCKING=1` present in the job environment, which forces every kernel launch to block until completion. With ~3,130 launches per step this produced up to 247 ms of overhead per step. Once identified and unset, efficiency recovered to 95.7%.
+
+### Multi-Node Scaling (Slingshot interconnect)
+
+Multi-node scaling was characterised from 2 to 100 nodes (8 to 400 GPUs) on `O96`. The headline results:
+
+| Scale | Scaling Efficiency |
+| :--- | ---: |
+| 2 nodes (8 GPUs) | 94.2% |
+| 10 nodes (40 GPUs) | 94.6% |
+| 25 nodes (100 GPUs) | 90.8% |
+| 50 nodes (200 GPUs) | 84.6% |
+| 100 nodes (400 GPUs) | 85.6% |
+
+Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85% at 50 nodes, where it stabilises. The primary mechanism is the **NCCL algorithm switch**: up to 10 nodes NCCL uses RING_LL and `All-Reduce` is fully overlapped within the backward pass. At 50 nodes NCCL switches predominantly to TREE_LL, pushing AllReduce kernel time to 621 ms/step and saturating 83% of the 748 ms backward window — overlap ends and communication appears on the critical path.
+
+**Wall-clock optimum** for `O96` is 100 nodes (82 s/epoch); for `N320` also ~100 nodes (669 s/epoch). Scaling beyond 100 nodes offers no wall-clock benefit and degrades cost efficiency sharply.
+
+**Startup overhead** becomes a significant fraction of total job time at scale — 52 s at 50 nodes, 79 s at 100 nodes — driven by the DDP weight broadcast (36.8 s at 100 nodes) and NCCL first-batch warmup (11.1 s at 10 nodes). Reducing startup overhead is the higher-priority improvement at large node counts.
+
+### Where to Look for Performance Improvements
+
+For readers focused on improving training throughput or reducing job turnaround time:
+
+- **Single-GPU throughput** — the remaining software cost centres (graph indexing and spherical harmonics operations) are documented in [Optimisation Actions](#optimisation-actions). Both are memory-bandwidth-bound; reducing their cost would require changes to model data access patterns or kernel implementations.
+- **Single-node efficiency** — the primary risk is environment contamination (`CUDA_LAUNCH_BLOCKING`). Guidance is in [Action 6: Node-Level Performance Variability](#action-6-node-level-performance-variability). The residual forward-pass overhead at 4 GPUs is characterised in [Action 8: Characterising the Multi-Rank Overhead with NVTX Markers](#action-8-characterising-the-multi-rank-overhead-with-nvtx-markers).
+- **Multi-node step time** — at 50+ nodes, AllReduce communication saturates the backward window and is on the critical path. Potential levers are discussed in [Action 1: Baseline Multi-Node Training Runs](#action-1-baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
+- **Multi-node startup time** — at 100 nodes startup overhead accounts for ~79 s, dominated by the DDP weight broadcast and NCCL warmup. Targets are documented in [Action 2: Startup Overhead](#action-2-startup-overhead) under *Startup improvement opportunities*.
 
 ## Initial Scaling Tests
 
@@ -65,12 +110,12 @@ NCCL (NVIDIA Collective Communications Library) [6] is the communication backend
 
 NCCL `All-Reduce` benchmarks were carried out on Isambard-AI across 1, 10, 50, and 200 nodes.
 
-| Nodes | Total GPUs | Peak Bus Bandwidth (GB/s) | Scaling Efficiency |
+| Nodes | Total GPUs | Peak Bus Bandwidth (GB/s) | Note |
 | :--- | :--- | :--- | :--- |
-| **1** | 4 | **342.5** | Baseline (NVLink) |
-| **10** | 40 | **92.7** | Excellent (Slingshot) |
-| **50** | 200 | **91.2** | Excellent (Slingshot) |
-| **200** | 800 | **70.8** | Good (~23% drop) |
+| **1** | 4 | **342.5** | NVLink baseline |
+| **10** | 40 | **92.7** | Slingshot; stable |
+| **50** | 200 | **91.2** | Slingshot; stable (−1.6% vs 10 nodes) |
+| **200** | 800 | **70.8** | ~23% drop vs 10–50 nodes |
 
 Bandwidth is stable between 10 and 50 nodes (92.7 → 91.2 GB/s), confirming that the scaling degradation seen in the initial tests is **not** caused by network communication bandwidth. The physical interconnect has headroom to spare; the overhead must originate elsewhere. The following sections investigate it tier by tier, starting from a single GPU.
 
@@ -135,7 +180,7 @@ The detailed profiler produces a TensorBoard trace. The four trace views collect
 - **GPU and Execution Summary:** GPU utilisation is 92.81% and SM Efficiency is 90.84%, ruling out data starvation as the bottleneck — the GPU is never idle. CPU-side synchronisation stalls were present (91% of CUDA API time, confirmed by nsys Phase 1) but did not limit GPU throughput. Achieved occupancy is only 41.92%, indicating memory stalls prevent full warp utilisation. The TensorBoard step time (1.29 s) is higher than the Anemoi `run_training_batch` timers because it includes trace-capture overhead; these measures are not interchangeable.
 - **Memory View:** Peak memory usage is 34.1 GB (~36% of 95 GB usable HBM3e). The trace shows a characteristic sawtooth pattern — memory spikes to 34 GB and drops as each activation chunk is processed then freed. The 60 GB of unused VRAM headroom does not translate to faster training.
 - **Operator View:** `Host Self Time` is dominated by `aten::copy_` (58.5%) and `aten::nonzero` (26.7%). Dynamic sparse indexing causes CPU–GPU synchronisation stalls; heavy `aten::to` and `aten::copy_` traffic indicates tensor casts inside the training loop. `torch.compile` (Action 3) fused over 50,000 of these element-wise operations and eliminated the `cudaStreamSynchronize` stall, though this did not translate to a measurable throughput improvement (see nsys deep-dive).
-- **Kernel View:** Tensor Core utilisation is only 1.1%, with 98.9% of GPU time on non-Tensor-Core work — directly confirming the workload is **memory-bandwidth bound**. NVIDIA nvjet kernels account for 40–50% of kernel time; FlashAttention for ~25% (TensorBoard host-side accounting; nsys GPU-time breakdown in Phase 3 gives slightly different figures). `flash_fwd_kernel` is called 2× more often than `flash_bwd_kernel`, confirming `num_chunks: 2` activation checkpointing is active.
+- **Kernel View:** Tensor Core utilisation is only 1.1%, with 98.9% of GPU time on non-Tensor-Core work — directly confirming the workload is **memory-bandwidth bound**. NVIDIA nvjet kernels account for 40–50% of kernel time; FlashAttention for ~25% (TensorBoard host-side accounting; nsys GPU-time breakdown in Phase 3 gives slightly different figures). `flash_fwd_kernel` is called 2× more often than `flash_bwd_kernel`, confirming activation checkpointing is active (one full forward recomputation per backward pass).
 
 The five GPU efficiency metrics below are mutually consistent:
 
@@ -211,7 +256,7 @@ baseline (eager) / detailed: tensorboard --logdir /home/u5gd/tomas.u5gd/u5gd_sha
 compiled / detailed: tensorboard --logdir /home/u5gd/tomas.u5gd/u5gd_shared/tomas/anemoi_workspace/experiments/2_O96/5_1gpu_profiling/5_compile/detailed/output/profiler/
  -->
 
-`torch.compile` fuses multiple small operations into larger Triton kernels, reducing CPU dispatch overhead and redundant memory round-trips. These experiments use batch size 8 to isolate compilation from Action 1. The eager baseline here (0.954 s) differs slightly from the section baseline (0.97 s) due to a different profiler run; see the step-time source table in the Summary for context.
+`torch.compile` fuses multiple small operations into larger Triton kernels, reducing CPU dispatch overhead and redundant memory round-trips. These experiments use batch size 8 to isolate compilation from Action 1. Compilation is scoped to the inner model (`model.model = torch.compile(model.model)`) — compiling the full Lightning module causes a Triton crash in the validation loop. The eager baseline here (0.954 s) differs slightly from the section baseline (0.97 s) due to a different profiler run; see the step-time source table in the Summary for context.
 
 **200-step simple profiler (includes recompilation overhead):**
 
@@ -305,9 +350,9 @@ With the CPU-side stalls eliminated by compilation (Phase 2), the remaining work
 | **FlashAttention** (fwd + bwd) | ~21% | ~32 s | Transformer attention layers |
 | **`indexSelectLargeIndex`** | ~13% | ~20 s | Sparse routing between geographic mesh nodes |
 | **D2H memory transfers** | <1% | ~1 s | No implicit synchronisation stalls |
-| **Other kernels** | ~30% | ~45 s | Remaining element-wise, normalisation, and utility kernels |
+| **Other kernels** | ~29% | ~44 s | Remaining element-wise, normalisation, and utility kernels |
 
-`flash_fwd_kernel` is called 2× more often than `flash_bwd_kernel`, confirming `num_chunks: 2` checkpointing is active. The dominance of `nvjet_hsh` confirms Anemoi’s performance is driven by domain-specific physics operations.
+`flash_fwd_kernel` is called 2× more often than `flash_bwd_kernel`, confirming activation checkpointing is active. The dominance of `nvjet_hsh` confirms Anemoi’s performance is driven by domain-specific physics operations.
 
 Fused AdamW was evaluated to test whether the optimizer update was a meaningful cost centre.
 
@@ -334,20 +379,22 @@ Different step-time figures appear across sections because they use different to
 
 All throughput and scaling comparisons use the simple profiler (`run_training_batch`) unless explicitly stated otherwise.
 
-Cumulative effect of optimisation steps:
+Each action was tested independently against the baseline (batch size 8, eager BF16); they are not stacked:
 
-| Configuration | Avg Batch Time (s) | Throughput (samples/s) | Peak Memory | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **Baseline (eager, batch 8)** | 0.97 | 7.93 | 34.1 GB (36%) | 625k kernel launches; 91% CUDA API time in sync stalls. |
-| **+ Batch size 16** | 1.91 | 7.79 (−1.8%) | ~68 GB (72%) | Step time doubles (2× data). No throughput gain → bottleneck is not data supply. |
-| **+ `torch.compile(model.model)`** | 1.026† | 6.27 (−23.9%\*) | 30.7 GB | No throughput benefit (avg batch time +7.5%; recompilation adds further drag over short runs). Operator fusion visible; 10% memory reduction. \*Includes recompilation overhead. †Different profiler run from rows above; see step-time table. |
-| *↳ FP8 (Transformer Engine)* | *1.00* | *6.32* | *—* | *No meaningful throughput improvement (+0.8%). AMAX CPU contention collapses dataloader throughput 84%. BF16 chosen.* |
-| **+ Fused AdamW** | 1.03 | 6.18 (−1.4% vs compiled) | N/A | No improvement. Optimizer is not the bottleneck. |
+| Configuration | Batch | Avg Batch Time (s) | Throughput (samples/s) | Peak Memory | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Baseline (eager, BF16)** | 8 | 0.97 | 7.93 | 34.1 GB (36%) | 625k kernel launches; 91% CUDA API time in sync stalls. |
+| **Batch size 16** | 16 | 1.91 | 7.79 (−1.8%) | ~68 GB (72%) | Step time doubles (2× data). No throughput gain → bottleneck is not data supply. |
+| **`torch.compile(model.model)`** | 8 | 1.026† | 6.27 (−23.9%\*) | 30.7 GB | No throughput benefit (avg batch time +7.5%; recompilation adds further drag over short runs). Operator fusion visible; 10% memory reduction. \*Includes recompilation overhead. †Different profiler run; see step-time table. |
+| *↳ FP8 (Transformer Engine, compiled)* | *8* | *1.00* | *6.32* | *—* | *No meaningful throughput improvement (+0.8%). AMAX CPU contention collapses dataloader throughput 84%. BF16 chosen.* |
+| **Fused AdamW (compiled)** | 8 | 1.03 | 6.18 (−1.4% vs compiled) | N/A | No improvement. Optimizer is not the bottleneck. |
 
 Two remaining cost centres are the most promising targets for further optimisation:
 
 - **`indexSelectLargeIndex` (~13% of runtime):** Pre-computing and caching graph indices could reduce this without changing model behaviour.
 - **`nvjet_hsh` kernels (~36% of runtime):** Establishing whether these originate from `anemoi-graphs` or a third-party library, and whether more recent versions exist, is worth investigating.
+
+The single-GPU investigation establishes that the workload is hardware-bound at the HBM3 memory-bandwidth ceiling, with no software path to a meaningful throughput improvement at this scale. The **eager BF16, batch size 8** configuration is carried forward as the 1-GPU reference baseline for all single-node multi-GPU experiments — compiled BF16 is reserved for direct comparison within those experiments.
 
 ## Single Node Multi-GPU Scaling
 
@@ -355,7 +402,7 @@ Each Isambard-AI node hosts **4 GH200 GPUs** connected via NVLink. Moving from 1
 
 **Intra-node scaling result.** On a correctly configured node, 4-GPU scaling efficiency is **95.7%** — approximately 1,031 ms/step at 4 GPUs vs 987 ms/step at 1 GPU, a 44 ms (4.3%) overhead. This is within the expected range for a graph model communicating over NVLink.
 
-**Background.** Early single node/4-GPU runs showed **76.5% efficiency** (~1,185–1,234 ms/step). `CUDA_LAUNCH_BLOCKING=1` was present in the SLURM job environment — carried over from a prior session — but was not recognised as the cause, triggering a seven-action investigation before the root cause was found. The key lesson: **verify the job environment before beginning any performance investigation**. A misconfigured environment variable invalidated the initial baseline and drove a substantial profiling campaign that could have been avoided.
+**Background.** Early single node/4-GPU runs showed **76.5% efficiency** (step times ranging from ~1,185 ms to ~1,234 ms across different nodes and profiling configurations). `CUDA_LAUNCH_BLOCKING=1` was present in the SLURM job environment — carried over from a prior session — but was not recognised as the cause, triggering a seven-action investigation before the root cause was found. The key lesson: **verify the job environment before beginning any performance investigation**. A misconfigured environment variable invalidated the initial baseline and drove a substantial profiling campaign that could have been avoided.
 
 `CUDA_LAUNCH_BLOCKING=1` forces every CUDA kernel launch to be synchronous, turning ~11 µs async dispatches into blocking waits. With ~625,000 kernel launches over 200 steps (~3,130 per step), the cumulative cost is ~220 ms. DDP amplifies the effect further through additional `cudaStreamSynchronize` calls for NCCL bucket coordination.
 
@@ -388,7 +435,7 @@ The table below summarises each investigative action, the hypothesis tested, and
 
 **Goal:** Establish an intra-node DDP baseline and measure 4-GPU scaling efficiency.
 
-The same configuration as the single-GPU 200-step simple profiler run was used. At this point, `CUDA_LAUNCH_BLOCKING=1` was present in the job environment and had not yet been identified as a factor. The key metric is **scaling efficiency**:
+The same configuration as the single-GPU 200-step simple profiler run was used: **eager BF16, batch size 8, no compilation**. At this point, `CUDA_LAUNCH_BLOCKING=1` was present in the job environment and had not yet been identified as a factor. The key metric is **scaling efficiency**:
 
 $$\text{Scaling efficiency} = \frac{\text{4-GPU total throughput}}{4 \times \text{1-GPU throughput}} \times 100\%$$
 
@@ -396,9 +443,9 @@ The single GPU established 8.23 samples/s at batch 8. At 4 GPUs with ideal scali
 
 | Metric | 1 GPU | 4 GPUs (1 node) | Change |
 | :--- | :--- | :--- | :--- |
-| **Avg Batch Time** | 0.97 s | 1.22 s | +26% |
-| **Throughput (per GPU)** | 8.23 samples/s | 6.30 samples/s | −23% |
-| **Throughput (total)** | 8.23 samples/s | 25.20 samples/s | +3.06× |
+| **Avg Batch Time** (`run_training_batch`) | 0.97 s | 1.22 s | +26% |
+| **Throughput (per GPU, wall-clock)** | 8.23 samples/s | 6.30 samples/s | −23% |
+| **Throughput (total, wall-clock)** | 8.23 samples/s | 25.20 samples/s | +3.06× |
 | **Scaling Efficiency** | 100% | **76.5%** | — |
 
 **Finding:** A 76.5% scaling efficiency at 4 GPUs — where NVLink bandwidth is very high and all communication is intra-node — is well below the ≥95% threshold expected at this scale. The apparent 26% step overhead (later identified as an artefact of `CUDA_LAUNCH_BLOCKING=1`) and its root cause are investigated in Actions 2–8.
@@ -428,7 +475,7 @@ A lightweight Lightning callback (`anemoi/training/diagnostics/callbacks/nvtx.py
 
 **Findings:**
 
-**Step time decomposition.** The NVTX markers give a direct breakdown of the 1,234 ms average step time across 200 steps (approximately 14 ms higher than the non-NVTX Action 1 run due to instrumentation overhead):
+**Step time decomposition.** The NVTX markers give a direct breakdown of the 1,234 ms average step time across 200 steps (slightly higher than the non-NVTX Action 1 run due to instrumentation overhead):
 
 | Phase | Avg (ms) | % of step |
 | :--- | ---: | ---: |
@@ -455,7 +502,7 @@ The backward phase dominates at 71.5%, with the optimizer taking just 1.3%. The 
 
 The backward median spread across all four ranks is **< 1 ms** out of 876 ms — the ranks are perfectly synchronised. This rules out load imbalance as the cause of the scaling loss. NCCL time per step varies across ranks (22–45 ms), reflecting each rank's position in the ring topology, but this variation is fully absorbed within the backward window and does not extend step time.
 
-**Conclusion.** NCCL `All-Reduce` is fully overlapped with the backward pass (22–45 ms per step, 2.5% of the backward window) and load-balanced across all four ranks. It is not the source of the 263 ms step overhead (established in Action 3 under identical profiler conditions). The investigation continues with an apples-to-apples comparison under identical profiler conditions.
+**Conclusion.** NCCL `All-Reduce` is fully overlapped with the backward pass (22–45 ms per step, 2.5% of the backward window) and load-balanced across all four ranks. It is not the source of the step overhead quantified in Action 3. The investigation continues with an apples-to-apples comparison under identical profiler conditions.
 
 ### Action 3: Isolating the Overhead — Forward Pass Analysis
 
@@ -473,7 +520,8 @@ To isolate the true 4-GPU vs 1-GPU overhead, both configurations were run with t
 
 The key observation is that the **forward pass is also 29% slower at 4 GPUs**. DDP performs no gradient communication during the forward pass — the `All-Reduce` happens only during the backward (the buffer broadcast at the start of each forward is negligible, as Action 8 will confirm) — so this forward overhead cannot be a DDP artifact. The near-identical overhead ratios (+29% forward, +25% backward) suggest a **uniform node-level slowdown** rather than DDP-specific overhead. A likely explanation is that the two runs used different SLURM nodes (nid011290 for 1-GPU, nid011197 for 4-GPU), introducing intrinsic hardware variation, or that running 4 GPUs simultaneously causes thermal or power throttling that uniformly degrades all operations. Of the 176 ms backward overhead, NCCL `All-Reduce` accounts for only 22–45 ms — a small fraction.
 
-**A note on the earlier diagnosis.** The previous analysis compared the 4-GPU backward (≈876 ms from Lightning profiler wall-clock) against a 1-GPU backward of "≈480 ms" from Phase 2, producing an apparent 310 ms gap. That 480 ms figure was GPU kernel execution time from nsys — measuring only time the CUDA kernels were active on the device, excluding Python dispatch overhead, data loading, and other CPU-side costs. The Lightning profiler measures end-to-end wall-clock time including all those overheads. The two tools are not directly comparable. The correct same-tool comparison shows a 176 ms backward overhead (+25%), not 310 ms. This was further confirmed by running 1-GPU with NVTX markers and the same Lightning profiler, which gave a backward of ≈788 ms — essentially identical to the 4-GPU compiled backward of 790 ms. The NVTX instrumentation adds ~94 ms to the 1-GPU backward (694 → 788 ms), while compilation removes ~92 ms from the 4-GPU backward (882 → 790 ms); the two effects bring both to the same level, ruling out any "compile-resistant DDP overhead".
+> [!NOTE]
+> **Tool comparability.** nsys GPU kernel execution time and wall-clock profiler time must not be compared directly. nsys kernel time measures only when CUDA kernels were active on the device, excluding Python dispatch, data loading, and other CPU-side costs; wall-clock time includes all of these. Mixing the two can produce large apparent gaps that do not reflect real overhead. The same-tool comparison here (both runs using the Anemoi simple profiler, no NVTX) gives the correct figure of **176 ms (+25%)** backward overhead.
 
 **Effect of `torch.compile` at 4 GPUs.** Using the consistent simple profiler (no NVTX) as the non-compiled baseline:
 
@@ -483,7 +531,7 @@ The key observation is that the **forward pass is also 29% slower at 4 GPUs**. D
 | Backward | 870 | 790 | −80 ms (−9%) |
 | **Step total** | **1,217** | **1,182** | **−35 ms (−2.9%)** |
 
-Compilation reduces the backward by 9% but the net step improvement is only **2.9%**. The forward increases by 15% (+48 ms), likely due to recompilation overhead in the compiled run. This modest benefit is consistent with the node-level hypothesis: if the overhead is hardware-driven rather than a PyTorch inefficiency, kernel fusion cannot address it.
+Compilation reduces the backward by 9% but the net step improvement is only **2.9%**. The forward increases by 15% (+48 ms), likely due to recompilation overhead in the compiled run — the same pattern seen at 1 GPU (+24% forward). The larger backward improvement here compared to 1 GPU (+1.5%) is likely an artefact of `CUDA_LAUNCH_BLOCKING=1` being present in the environment: compilation reduces kernel launches by ~31%, and under synchronous dispatch each avoided launch directly reduces blocking time. This modest net benefit is consistent with the node-level hypothesis: if the overhead is hardware-driven rather than a PyTorch inefficiency, kernel fusion cannot address it.
 
 **Summary.** NCCL `All-Reduce` is cheap (22–45 ms/step, fully overlapped with backward) and all ranks finish backward within 1 ms of each other. The 263 ms step overhead at 4 GPUs vs 1 GPU (same profiler, same conditions) appears as a proportional slowdown of both forward and backward, pointing to a node-level effect rather than DDP-intrinsic overhead. `torch.compile` provides only a 2.9% step improvement at 4 GPUs. Actions 4–8 investigate whether any DDP-level configuration change can reduce the overhead.
 
@@ -496,9 +544,9 @@ Compilation reduces the backward by 9% but the net step improvement is only **2.
 
 **Goal:** Determine whether DDP gradient-handling configuration — bucket size and gradient memory layout — can reduce the backward overhead identified in Action 3.
 
-Action 3 established that the backward overhead at 4 GPUs is 176 ms (+25%) relative to 1 GPU (same profiler, same conditions), with NCCL accounting for only 22–45 ms of that gap. Two structural DDP costs remain as candidates: (1) gradient-to-bucket copies — before each `All-Reduce`, DDP copies each parameter's `.grad` tensor into a contiguous bucket buffer, adding memory-bandwidth pressure; and (2) SM resource contention — 31 NCCL kernels on Stream 16 competing with compute kernels on Stream 7. Two experiments target these directly.
+Action 3 established that the backward overhead at 4 GPUs is 176 ms (+25%) relative to 1 GPU, with NCCL accounting for only 22–45 ms of that gap. Two DDP costs remain as candidates: (1) gradient-to-bucket copies before each `All-Reduce`; and (2) SM resource contention from 31 NCCL kernels competing with compute kernels. Two experiments target these directly.
 
-**Experiment 1: Gradient Bucket Size.** The default bucket size is 25 MB, producing 31 `All-Reduce`s per step (462 MB total / ~15 MB average fill). NCCL selects the RING_LL (Low Latency) algorithm for these small messages, achieving only ~31 GB/s (5% of the 600 GB/s NVLink peak). Larger buckets would trigger the RING algorithm, which saturates NVLink bandwidth for bulk transfers. `bucket_cap_mb` was set to 100 MB (~5 buckets per step) via the `DDPGroupStrategy` config. The `BaseDDPStrategySchema` Pydantic schema was extended to accept this field, forwarded through `**kwargs` to `DDPStrategy`. `static_graph=True` is already active by default in anemoi-training when `accum_grad_batches == 1`.
+**Experiment 1: Gradient Bucket Size.** The default 25 MB bucket size produces 31 `All-Reduce`s per step. `bucket_cap_mb` was raised to 100 MB (~5 buckets per step), which would reduce launch overhead and trigger the higher-throughput RING algorithm in NCCL.
 
 | Metric | Baseline 25 MB | 100 MB buckets | Change |
 | :--- | ---: | ---: | ---: |
@@ -507,9 +555,9 @@ Action 3 established that the backward overhead at 4 GPUs is 176 ms (+25%) relat
 | Backward | 790 ms | 796 ms | +6 ms (+0.8%) |
 | Throughput (batches/s) | 0.670 | 0.656 | −2.2% |
 
-The 100 MB configuration is marginally worse across every metric. The `All-Reduce` launch is delayed longer while waiting for each larger bucket to fill, shrinking the pipelined overlap window with the backward pass. The gain from fewer NCCL launches is more than offset by the loss of early-start overlap. The default 25 MB bucket size is optimal for this model; further sweeps are not warranted.
+The larger bucket delays `All-Reduce` launch, shrinking the pipelined overlap window with the backward pass. The 25 MB default is better than the 100 MB alternative tested here.
 
-**Experiment 2: Gradient-as-Bucket-View.** With `gradient_as_bucket_view=True`, gradients are allocated directly as views into the bucket memory, removing the copy entirely and reducing peak memory consumption by one gradient-sized buffer. `gradient_as_bucket_view` was added to `BaseDDPStrategySchema` alongside `bucket_cap_mb` and passed through `**kwargs` to `DDPStrategy`.
+**Experiment 2: Gradient-as-Bucket-View.** Setting `gradient_as_bucket_view=True` eliminates the gradient-to-bucket copy by allocating gradients directly as views into bucket memory.
 
 | Metric | Baseline | `gradient_as_bucket_view` | Change |
 | :--- | ---: | ---: | ---: |
@@ -519,25 +567,22 @@ The 100 MB configuration is marginally worse across every metric. The `All-Reduc
 | Throughput (batches/s) | 0.670 | 0.645 | −3.8% |
 | Dataloader throughput | 341.7 samples/s | 51.9 samples/s | **−85%** |
 
-The backward duration is unchanged (798 ms vs 790 ms), confirming that gradient-to-bucket copies are **not** the source of the backward overhead. A significant side effect was observed: the average dataloader wait per step rose from 2.9 ms to 19.3 ms, and training dataloader throughput collapsed from 341 to 52 samples/s. Making gradients views into bucket buffers alters the memory layout of the gradient tensors, causing contention with the pinned-memory transfer pipeline used by the data workers — an unacceptable regression independent of the training speed result.
+The backward duration is unchanged, confirming that gradient copies are **not** the source of the overhead. The 85% dataloader throughput collapse is an unacceptable regression: altering the gradient memory layout causes contention with the pinned-memory transfer pipeline used by the data workers.
 
-**Conclusion.** Both DDP-level interventions fail to reduce the overhead:
+**Conclusion.** Both interventions make performance worse:
 
 | Intervention | Backward change | Step change | Verdict |
 | :--- | ---: | ---: | :--- |
 | `bucket_cap_mb=100` | +6 ms | +20 ms | Worse |
 | `gradient_as_bucket_view=True` | +8 ms | +14 ms | Worse + dataloader regression |
-| `torch.compile` | −80 ms | −35 ms | Partial (2.9% step improvement) |
 
-All DDP-level interventions are exhausted. The backward overhead at 4 GPUs is not attributable to configurable DDP parameters. Combined with the forward overhead of +73 ms (+29%) that cannot be DDP-related, the evidence points to a **node-level effect** rather than a DDP-intrinsic cost. Whether this is intrinsic hardware variation between the SLURM nodes used (nid011290 for 1-GPU, nid011197 for 4-GPU), or throttling caused by running 4 GPUs simultaneously on one node, is investigated in Action 6. The baseline configuration (25 MB buckets, `gradient_as_bucket_view=False`, `torch.compile` enabled) is optimal given the current DDP setup.
+All DDP-level options are exhausted. The backward overhead is not attributable to configurable DDP parameters. Combined with the forward overhead (+29%) that cannot be DDP-related, the evidence points to a **node-level effect**, investigated in Action 6. The default configuration (25 MB buckets, `gradient_as_bucket_view=False`) is better than the alternatives tested.
 
 ### Action 5: Data Loading as a Scaling Bottleneck
 
-**Goal:** Determine whether data loading contention is responsible for the 4-GPU step overhead by comparing per-process dataloader throughput between the 1-GPU and 4-GPU runs.
+**Goal:** Determine whether data loading contention is responsible for the 4-GPU forward pass overhead.
 
-The forward pass slowdown (+29%) occurs before any NCCL communication. One candidate mechanism is data loading: with four processes simultaneously reading from Lustre, per-process I/O bandwidth may be insufficient to keep the GPU fed, causing the forward pass to stall waiting for a batch.
-
-**Method.** The Anemoi profiler reports `avg_training_dataloader_throughput` (samples/s delivered by the dataloader) alongside `training_avg_throughput` (batches/s consumed by training). Comparing these two rates establishes whether the dataloader has headroom over the training pipeline, or whether data loading is the rate-limiting step.
+The forward pass slowdown (+29%) occurs before any NCCL communication. With four processes reading from Lustre simultaneously, per-process I/O bandwidth may be insufficient to keep the GPU fed.
 
 **Findings.**
 
@@ -547,31 +592,17 @@ The forward pass slowdown (+29%) occurs before any NCCL communication. One candi
 | Training consumption rate (samples/s) | ~8.2 | ~6.7 |
 | Dataloader headroom | **305×** | **9.8×** |
 
-The per-process dataloader throughput drops 38× when moving from 1 to 4 GPUs — a clear sign of Lustre I/O contention when four processes read simultaneously. However, the dataloader remains ~10× faster than the rate at which training actually consumes data. At no point does the training loop wait for the dataloader: the prefetch buffer stays full throughout.
+Per-process dataloader throughput drops 38× under 4-GPU I/O contention, but the dataloader still delivers samples ~10× faster than training consumes them. The prefetch buffer stays full; the GPU never stalls waiting for data.
 
-**Conclusion.** Data loading is not the bottleneck. Even under heavy I/O contention, the dataloader delivers samples an order of magnitude faster than training consumes them. The 38× per-process throughput drop is real, but it affects only the dataloader's internal prefetch margin — it never stalls the GPU compute pipeline. The forward pass overhead cannot be explained by data loading.
+**Conclusion.** Data loading is not the bottleneck. The forward pass overhead cannot be explained by Lustre I/O contention.
 
 ### Action 6: Node-Level Performance Variability
 
-**Goal:** Determine whether the 263 ms (28%) step overhead at 4 GPUs is caused by intrinsic differences between the SLURM nodes used, or by thermal/power throttling when all 4 GPUs are active simultaneously on a single node.
+**Goal:** Determine whether the 4-GPU step overhead is caused by node heterogeneity or by throttling from concurrent GPU load on a single node.
 
-Actions 2–5 established that NCCL communication, DDP configuration, and data loading contention cannot explain the overhead, and that the forward pass is proportionally as slow as the backward. The two most plausible remaining causes are:
+Actions 2–5 ruled out NCCL, DDP configuration, and data loading. Two hypotheses remain: (1) the 1-GPU and 4-GPU runs used different nodes (nid011290 vs nid011197), so the overhead may be a measurement artefact; (2) running 4 GPUs simultaneously throttles all GPUs uniformly.
 
-1. **Node heterogeneity.** The 1-GPU run used nid011290 (job 2441440) and the 4-GPU run used nid011197 (job 2489730). If nid011197 is intrinsically slower — due to hardware variation, a different firmware state, or background system processes — the entire ~28% overhead would be a measurement artefact of comparing different nodes, with no relation to GPU count.
-
-2. **Thermal or power throttling from concurrent GPU load.** Running 4 GPUs simultaneously on a single node places 4× the thermal and power demand on the node. If the node's cooling or power delivery cannot sustain 4 GPUs at peak throughput, all GPUs may be throttled uniformly — producing the proportional slowdown observed across both forward and backward.
-
-**Experiment design.** To disambiguate the two hypotheses, submit a 1-GPU job that is pinned to the same node as the 4-GPU run (e.g., `--nodelist=nid011197`) with identical config (simple profiler, no NVTX, no compilation, 200 steps) and compare the step time:
-
-| Outcome | Interpretation |
-| :--- | :--- |
-| Step ≈ 954 ms (matches original 1-GPU) | nid011197 is not intrinsically slow; throttling from concurrent GPU load is the likely cause |
-| Step ≈ 1,217 ms (matches 4-GPU) | nid011197 is intrinsically slower than nid011290, regardless of GPU count |
-| Step between 954–1,217 ms | Mixed effect (some node variability, some throttling) |
-
-To further confirm the throttling hypothesis, run the 1-GPU job on nid011197 **while simultaneously launching three dummy GPU processes on the same node** (e.g., `python -c "import torch; t = torch.ones(1000, 1000, device='cuda'); [t.mm(t) for _ in range(100000)]"` on the other three GPUs). If step time rises to ~1,217 ms, this confirms that concurrent GPU activity on the node is the direct cause of the throughput loss.
-
-**Findings.** Both jobs were submitted to nid011191 (jobs 2553349 and 2553350) with identical config (simple profiler, no NVTX, no compilation, 200 steps). Results:
+**Experiment 1: Node comparison.** A 1-GPU and a 4-GPU job were submitted to the same node (nid011191, jobs 2553349 and 2553350) with identical config (simple profiler, no NVTX, no compilation, 200 steps).
 
 | Phase | 1-GPU nid011290 (original) | 1-GPU nid011191 | 4-GPU nid011191 | Same-node overhead |
 | :--- | ---: | ---: | ---: | ---: |
@@ -581,9 +612,9 @@ To further confirm the throttling hypothesis, run the 1-GPU job on nid011197 **w
 | Throughput/GPU (samples/s) | 8.23 | 8.17 | 6.27 | −23% |
 | Scaling efficiency | — | 100% | **76.8%** | — |
 
-Two results stand out. First, the 1-GPU step time on nid011191 (965 ms) matches the original nid011290 baseline (954 ms) within 1.1% — the two nodes perform identically, ruling out node heterogeneity as a cause of the scaling loss. Second, and more importantly, the **forward pass is still 26% slower** at 4 GPUs on the exact same node. DDP performs no communication during the forward pass, so this overhead cannot have any DDP-related explanation. The only mechanism consistent with a uniform ~23% slowdown of both forward and backward — on the same hardware, with the same software — is that **activating all 4 GPUs simultaneously degrades per-GPU throughput across the board**.
+The 1-GPU step time on nid011191 (965 ms) matches the original baseline (954 ms) within 1.1%, ruling out node heterogeneity. The forward pass is still 26% slower at 4 GPUs on the same node — DDP performs no communication during the forward pass, so this cannot have a DDP-related explanation.
 
-**Throttle test.** To distinguish thermal/power throttling from DDP-specific interactions, a second experiment (job 2558499, nid011191) ran 1-GPU training alongside three concurrent BF16 matmul loops on the remaining GPUs. The matmul kernels are compute- and memory-bandwidth-saturating workloads identical in intensity to a training forward pass, but without any NCCL communication or data loading. If thermal or power throttling from concurrent GPU activity were the cause, this test should reproduce the 4-GPU step time:
+**Experiment 2: Throttle test.** To rule out thermal/power throttling, a 1-GPU training job (job 2558499, nid011191) ran alongside three concurrent BF16 matmul loops on the remaining GPUs (`python -c "import torch; t = torch.ones(1000, 1000, device='cuda'); [t.mm(t) for _ in range(100000)]"`). These are compute- and memory-bandwidth-saturating workloads with no NCCL communication.
 
 | Configuration | Forward | Backward | Step |
 | :--- | ---: | ---: | ---: |
@@ -591,39 +622,29 @@ Two results stand out. First, the 1-GPU step time on nid011191 (965 ms) matches 
 | 1-GPU nid011191 (3 dummy GPU loads) | 256 ms | 705 ms | 969 ms |
 | 4-GPU nid011191 (DDP training) | 321 ms | 846 ms | 1,185 ms |
 
-The dummy-load run matches the no-load baseline within 4 ms (<0.5%) and is entirely distinct from the 4-GPU training time. Three GPUs running at full compute and memory-bandwidth utilisation have no measurable effect on the fourth. This conclusively rules out thermal throttling, power-cap enforcement, and any form of node-level resource saturation caused purely by concurrent GPU compute.
+Three GPUs running at full utilisation have no measurable effect on the fourth (<0.5% difference), ruling out thermal throttling and power-cap enforcement.
 
-The ~23% overhead is therefore specific to the DDP training scenario. The distinguishing factors between 4-GPU DDP training and the dummy-load test are: (1) NCCL `All-Reduce` traffic over NVLink during the backward pass; (2) four independent data-loading processes simultaneously reading from shared storage; and (3) four full PyTorch training processes competing for shared CPU/memory resources on the Grace SoC. The forward pass overhead (+29%), which precedes any NCCL activity, points toward CPU/memory resource contention on the Grace SoC rather than NVLink bandwidth saturation as the primary suspect.
+**Conclusion.** Both hypotheses are eliminated. The 23% step overhead is specific to multi-GPU training. The forward pass overhead (+26%), which precedes any NCCL activity, rules out NVLink as the cause but leaves the root cause open. Whether it arises from four full training processes competing for shared resources is addressed in Action 7.
 
-**Conclusion.** Two hypotheses have been eliminated. Node heterogeneity is ruled out: nid011191 and nid011290 perform identically at 1 GPU (965 ms vs 954 ms, 1.1% difference). Thermal or power throttling from concurrent GPU compute is ruled out: three BF16 matmul loads running at full intensity on the same node had no measurable impact on the training GPU.
+### Action 7: Multi-Process vs Multi-Rank Overhead
 
-The 23% step-time overhead (220 ms/step) at 4 GPUs is real and reproducible on this node. Whether it is DDP-specific or arises from running four full training processes simultaneously is addressed in Action 7; the root cause of the overhead and its node-to-node variability is identified in Action 8.
+**Goal:** Determine whether the ~23% step overhead arises simply from running four full training processes simultaneously on the same node, or requires the ranks to be operating as a distributed group.
 
-### Action 7: DDP-Specific vs Multi-Process Resource Contention
-
-**Goal:** Determine whether the ~23% step overhead is DDP-specific, or whether it arises simply from running four full training processes simultaneously on the same node.
-
-Action 6 ruled out thermal throttling using compute-saturating dummy loads. The dummy processes approximated GPU compute load but not a full training stack: they had no dataloader, no Python training loop, and no NCCL process group. The natural next step is to replace the dummy loads with four genuine, independent 1-GPU training processes (`WORLD_SIZE=1`, no DDP), and measure whether the overhead reappears.
-
-**Hypotheses.**
-
-1. **Multi-process resource contention.** Four full training stacks — each with a dataloader, Python interpreter, full model copy, and active GPU compute — saturate a shared node resource (Grace SoC memory bandwidth, CPU cache, OS scheduling). The overhead appears regardless of whether DDP is active.
-
-2. **DDP-specific overhead.** The NCCL process group, `DDPGroupStrategy` hooks, or NVLink state maintained across steps introduces per-step cost absent when `WORLD_SIZE=1`. The overhead disappears in non-DDP multi-process runs.
+Action 6 ruled out thermal throttling using compute-saturating dummy loads, but those had no dataloader, Python training loop, or NCCL process group. The natural next step is to replace dummy loads with four genuine independent 1-GPU training processes (`WORLD_SIZE=1`, no DDP).
 
 **Results.**
 
-| Phase | 4× non-DDP (this test) | 1-GPU baseline | 4-GPU DDP |
+| Phase | 1-GPU baseline | 4× non-DDP | 4-GPU DDP |
 | :--- | ---: | ---: | ---: |
-| Forward (`DDPGroupStrategy.training_step`) | 257 ms | 256 ms | 321 ms |
-| Backward (`DDPGroupStrategy.backward`) | 704 ms | 705 ms | 846 ms |
-| **Step (`run_training_batch`)** | **970 ms** | **965 ms** | **1,185 ms** |
+| Forward | 256 ms | 257 ms | 321 ms |
+| Backward | 705 ms | 704 ms | 846 ms |
+| **Step** | **965 ms** | **970 ms** | **1,185 ms** |
 
-Four co-running full training workloads produce a step time of 970 ms — statistically identical to the 1-GPU baseline (965 ms) and 18% faster than 4-GPU DDP (1,185 ms).
+Four co-running full training workloads produce a step time of 970 ms — identical to the 1-GPU baseline and 18% faster than 4-GPU DDP.
 
-**Conclusion.** Multi-process resource contention is ruled out. The Grace-Hopper node absorbs four simultaneous full training stacks with no measurable interference. The ~220 ms overhead is therefore DDP-specific: it must arise from NCCL gradient synchronisation, `DDPGroupStrategy` forward-pass hooks, or NVLink state maintained across steps. The next step is finer-grained profiling of the DDP forward and backward passes to locate where the synchronisation cost is incurred.
+**Conclusion.** Multi-process resource contention is ruled out. The Grace-Hopper node absorbs four simultaneous full training stacks with no measurable interference. The ~220 ms overhead is therefore specific to the multi-rank training configuration — it is not caused by generic multi-process load, but something inherent to how the ranks interact when operating as a distributed group. Note that this includes the forward pass overhead (+26% from Action 6), which precedes any NCCL communication, so the cause is not limited to gradient synchronisation alone. The root cause is investigated in Action 8.
 
-### Action 8: Characterising DDP-Specific Overhead with NVTX Markers
+### Action 8: Characterising the Multi-Rank Overhead with NVTX Markers
 
 <!--
 1gpu:
@@ -632,21 +653,9 @@ Four co-running full training workloads produce a step time of 970 ms — statis
 /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/7_1node_profiling/2_bseline_nsys/simple_200_nvtx_2
  -->
 
-**Goal:** Add NVTX markers to decompose the DDP step into `forward`, `backward`, and `optimizer` phases, and run two targeted experiments to locate the source of the DDP overhead confirmed in Action 7.
+**Goal:** Use NVTX markers to decompose the step into `forward`, `backward`, and `optimizer` phases, and locate the source of the multi-rank overhead confirmed in Action 7.
 
-A lightweight Lightning callback emits `nvtx.range_push/pop` markers at batch start/end and at the backward pass boundaries. Phase averages are extracted from the nsys SQLite output.
-
-**Experiment 1: `broadcast_buffers=False`.** By default, `DDPStrategy` broadcasts all model buffers from rank 0 at the start of every forward pass. For a graph model with large buffers this is a synchronous NCCL collective in the forward window.
-
-| Phase | 4-GPU baseline | `broadcast_buffers=False` | Change |
-| :--- | ---: | ---: | ---: |
-| Forward | 321 ms | 303 ms | −18 ms |
-| Backward | 846 ms | 858 ms | +12 ms |
-| **Step** | **1,185 ms** | **1,179 ms** | **−6 ms** |
-
-The −6 ms step change is within run-to-run noise. Notably, the phase-level changes are anti-correlated (−18 ms forward, +12 ms backward): removing the broadcast shifts where the CPU stall falls within the step rather than eliminating it, with the two changes largely cancelling at the step level. This is consistent with a phase-boundary timing shift rather than a real saving. Buffer broadcasting is not the source of the overhead.
-
-**Experiment 2: NVTX phase breakdown across nodes.**
+**Findings.**
 
 | Phase (NVTX avg) | 1-GPU (nid010659) | 4-GPU (nid010706) | 4-GPU (nid010881) |
 | :--- | ---: | ---: | ---: |
@@ -656,9 +665,9 @@ The −6 ms step change is within run-to-run noise. Notably, the phase-level cha
 | **Step** | **987 ms** | **1,031 ms** | **1,234 ms** |
 | **Overhead vs 1-GPU** | — | **+44 ms (+4.4%)** | **+247 ms (+25%)** |
 
-The overhead is present on every node but varies dramatically (44–247 ms). This variability is DDP-specific: Action 7 showed four concurrent independent 1-GPU processes on the same node produce 970 ms — identical to baseline — so general node noise is ruled out. The abnormally low optimizer time on nid010881 (1.5 ms vs ~7–10 ms expected) is a symptom of a CPU stall earlier in the step shifting the phase boundary, not a genuine speedup.
+The overhead varies dramatically across nodes (44–247 ms) and is specific to the multi-rank configuration (Action 7 confirmed four independent 1-GPU processes produce 970 ms — identical to baseline).
 
-**nsys timeline comparison (nid010659 vs nid010706, best-case 4.4% overhead).**
+**nsys timeline comparison (nid010659 vs nid010706).**
 
 ![nsys timeline — 1-GPU baseline](img/nsys_1gpu.png)
 *Figure 5. nsys timeline for the 1-GPU baseline (nid010659).*
@@ -666,14 +675,9 @@ The overhead is present on every node but varies dramatically (44–247 ms). Thi
 ![nsys timeline — 1-node rank 0 (4-GPU)](img/nsys_1node_rank0.png)
 *Figure 6. nsys timeline for the 4-GPU run, rank 0 (nid010706).*
 
-Two mechanisms visible in the timelines account for the residual 44 ms:
+Two mechanisms account for the 44 ms overhead on the good node: GPU stream occupancy drops from 99.7% to 97.7% (~20 ms), and a forward-pass buffer broadcast stall (`ncclDevKernel_Broadcast_RING_LL`, ~19 ms forward-phase delta, −6 ms at step level). Multi-rank execution also incurs more `cudaStreamSynchronize` calls (107/step), making it inherently more sensitive to node-level dispatch jitter.
 
-- **GPU stream occupancy drop.** Stream 7 falls from 99.7% (1-GPU) to 97.7% (4-GPU), producing ~20 ms of scattered idle time per step where the CPU is managing multi-GPU bookkeeping.
-- **Synchronous forward-pass collective.** A `ncclDevKernel_Broadcast_RING_LL` kernel fires on Stream 16 at the start of the forward pass — this is the buffer broadcast. The ~106 µs kernel itself is negligible, but it forces a CPU dispatch stall while the Grace CPU switches context to the auxiliary stream and then resumes queuing compute kernels, contributing to the ~19 ms forward-pass delta. Experiment 1 confirms that disabling it (`broadcast_buffers=False`) saves ~18 ms in the forward phase but only ~6 ms at the step level — within noise — so it is a minor contributor, not the dominant source.
-
-A third observation — significantly more `cudaStreamSynchronize` calls in the 4-GPU CUDA API row — has negligible direct cost on a good node (107 calls/step × 6.1 µs avg = 0.65 ms), but it matters structurally: the Python thread must wake frequently to coordinate NCCL bucket synchronisation rather than sitting idle in `pthread_cond_wait`. This makes DDP execution inherently more sensitive to node-level dispatch jitter, which explains why the same overhead that costs 44 ms on a good node costs 247 ms on a bad one.
-
-Comparing `cudaLaunchKernel` dispatch latency across all three profiles closes the root-cause question:
+`cudaLaunchKernel` dispatch latency identifies the root cause of the node-to-node variability:
 
 | Profile | Avg `cudaLaunchKernel` latency | Total kernel launches |
 | :--- | ---: | ---: |
@@ -681,15 +685,17 @@ Comparing `cudaLaunchKernel` dispatch latency across all three profiles closes t
 | 4-GPU best (nid010706) | 10.6 µs | 625,691 |
 | 4-GPU worst (nid010881) | 215.3 µs | 625,691 |
 
-Two things are immediately clear. First, the 1-GPU dispatch latency (11.8 µs) matches the good 4-GPU node (10.6 µs) — DDP itself adds no dispatch overhead. Second, the kernel launch *count* is essentially identical across all three profiles (~625k), confirming DDP introduces no extra kernel launches. The 215.3 µs average on nid010881 is an anomaly specific to that node. With ~625,000 kernel launches over 200 steps (~3,130 per step), this 20× increase in dispatch latency starves the GPU of work and accounts for the full 203 ms gap — 72% of which falls in the backward pass (+146 ms), where kernel launch density is naturally highest. The likely culprit is `CUDA_LAUNCH_BLOCKING=1` being set in the environment on the affected node — either inherited from a previous job, set in a system profile, or present in a user's shell configuration. This environment variable forces every CUDA kernel launch to be synchronous: the CPU stalls until each kernel completes before queuing the next, turning what should be ~11 µs async dispatches into blocking waits that scale with kernel duration. With ~3,130 launches per step the aggregate cost is substantial. This should be confirmed by inspecting the environment of affected nodes.
+Kernel launch counts are identical — multi-rank training introduces no extra launches. On nid010881 the 20× increase in average dispatch latency (11 µs → 215 µs) is consistent with `CUDA_LAUNCH_BLOCKING=1` in the job environment, which forces kernel launches to block until completion. With ~3,130 launches per step the aggregate serialisation cost is substantial and accounts for the 203 ms gap. NCCL's higher CPU wake frequency amplifies this into disproportionate overhead.
 
-**Conclusion.** The overhead is not a GPU or NVLink limitation. On a well-performing node the 4-GPU penalty is 44 ms (4.3%), accounted for in large part by GPU stream fragmentation (~20 ms) and the forward-pass buffer broadcast dispatch stall (~19 ms), with the residual ~5 ms attributable to other DDP bookkeeping costs. On a degraded node, `CUDA_LAUNCH_BLOCKING=1` (or equivalent synchronous dispatch) forces every kernel launch to block, and the increased CPU wake frequency from NCCL bucket synchronisation amplifies this into 247 ms (25%) of step overhead. Ensuring `CUDA_LAUNCH_BLOCKING` is unset in the job environment is a prerequisite for reproducible performance.
+**Conclusion.** With a clean job environment the 4-GPU penalty is 44 ms (4.3%), from stream fragmentation and the buffer broadcast stall. With `CUDA_LAUNCH_BLOCKING=1` set in the environment, every kernel launch becomes a blocking wait, producing 247 ms (25%) of overhead. Ensuring it is unset is a prerequisite for reproducible performance.
 
-**Verdict.** 1-node 4-GPU profiling is complete. Scaling efficiency on a good node is ~95.7%, acceptable for a graph model of this complexity over NVLink. The node-to-node variability (4.3%–25% overhead) is caused by `CUDA_LAUNCH_BLOCKING=1` leaking into the job environment on affected nodes — this should be explicitly unset in all job scripts. The forward-pass buffer broadcast should be monitored at multi-node scale where it runs over Slingshot.
+**Verdict.** With a clean job environment, scaling efficiency is ~95.7%, acceptable for a graph model of this complexity over NVLink. The variability observed across runs (4.3%–25%) is caused by `CUDA_LAUNCH_BLOCKING=1` leaking into the job environment. The forward-pass buffer broadcast should be monitored at multi-node scale where it runs over Slingshot.
 
 ## Multi Node Scaling
 
-### Action 1: Baseline 2, 10, and 50-Node Training Runs
+With single-GPU and single-node behaviour established, this section characterises how Anemoi scales across multiple nodes connected via the HPE Slingshot 11 interconnect. The key questions are: how efficiently does gradient synchronisation scale from 2 to 100 nodes, where does NCCL communication become the critical-path bottleneck, and how large is the startup overhead relative to training time at scale? All runs use the `O96` dataset, eager BF16, batch size 8, and the same job environment controls established in the single-node section (`CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` explicitly unset).
+
+### Action 1: Baseline Multi-Node Training Runs (2–100 Nodes)
 
 <!-- 
 1 gpu:
@@ -710,7 +716,7 @@ Two things are immediately clear. First, the 1-GPU dispatch latency (11.8 µs) m
 
 **Goal:** Establish baseline step time and startup time at 2, 10, and 50 nodes to quantify the scaling efficiency and startup overhead growth beyond 1 node.
 
-`CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` were explicitly unset before these runs. The 1-node section identified synchronous kernel dispatch as the likely cause of the node-to-node variability; this run confirms it and establishes a clean multi-node baseline. As a result, the 4-GPU (1 node) efficiency here (96.1%, step med 977 ms vs 1017 ms) differs from the 76.5% reported in the Single Node Multi-GPU section: those earlier experiments used arbitrary SLURM node assignments before the `CUDA_LAUNCH_BLOCKING` issue was identified, and some nodes were in a degraded state.
+`CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` were explicitly unset before these runs, establishing a clean multi-node baseline free from the environment issue identified in the single-node section.
 
 For the 1-GPU, 1 node, 2 nodes, and 10 nodes, 200 steps of the simple profiler with NVTX markers and `nsys profile` capture were used, whereas due to dataset size, the number of steps for the 50-node and 100-node runs had to be reduced to 40 and 24 respectively. Since 24–40 steps is still sufficient to get a stable median step time, this should not affect the validity of the scaling efficiency calculation, especially when comparing median times across runs.
 
@@ -718,11 +724,11 @@ Scaling efficiency is calculated as:
 
 $$\text{Scaling Efficiency} = \frac{T_{\text{1-GPU}}}{T_{N\text{-GPU}}} \times 100\%$$
 
-where $T_{\text{1-GPU}}$ is the median step time on 1 GPU and $T_{N\text{-GPU}}$ is the median step time with $N$ GPUs. This is equivalent to the throughput-ratio formulation used in the Single Node section ($\text{N-GPU total throughput} / (N \times \text{1-GPU throughput})$); step time and throughput are reciprocals, so the two expressions are identical. Note that the number of gradient update steps per epoch remains the same regardless of GPU count — each step processes $N$ times more data in parallel (one local batch per GPU). Therefore, a step that takes the same wall-clock time as the 1-GPU baseline represents a perfect $N\times$ throughput improvement, and 100% efficiency means no overhead from parallelisation.
+where $T_{\text{1-GPU}}$ is the median step time on 1 GPU and $T_{N\text{-GPU}}$ is the median step time with $N$ GPUs. This is equivalent to the throughput-ratio formulation used in the Single Node section ($\text{N-GPU total throughput} / (N \times \text{1-GPU throughput})$); step time and throughput are reciprocals, so the two expressions are identical. Each step processes $N$ times more data in parallel (one local batch per GPU), so the global batch size grows with GPU count and fewer steps are needed per epoch. A step that takes the same wall-clock time as the 1-GPU baseline therefore represents a perfect $N\times$ throughput improvement, and 100% efficiency means no overhead from parallelisation.
 
 **Per-step scaling** (Simple profiler, NVTX, nsys profile, rank 0):
 
-| Phase | 1-GPU [1] | 4-GPU (1 node) [1] | 8-GPU (2 nodes) [1] | 40-GPU (10 nodes) [1] | 100-GPU (25 nodes) [1] | 200-GPU (50 nodes) [1] | 400-GPU (100 nodes) [1] |
+| Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) | 100-GPU (25 nodes) | 200-GPU (50 nodes) | 400-GPU (100 nodes) |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Step Med (ms) | 977.0 | 1016.8 | 1037.1 | 1032.7 | 1076.5 | 1154.8 | 1141.3 |
 | Step Min (ms) | 966.1 | 996.2 | 1016.2 | 1003.2 | 1034.8 | 1024.8 | 562.8 |
@@ -769,7 +775,7 @@ Total f32 AllReduce GPU kernel time per step grows 42.6 ms (1 node) → 145.6 ms
 
 At 25 nodes, AllReduce remains predominantly RING_LL (317.3 ms) with a growing TREE_LL component (59.8 ms), totalling 377.1 ms per step — 49% of the 764.9 ms backward window. Despite the low saturation, backward reaches its peak of 764.9 ms (+7.9% vs 1-GPU) at this scale. This suggests that at 25 nodes NCCL is operating in a transitional algorithm regime, and the mixed RING/TREE mode may introduce overhead beyond what pure saturation would predict. The cause is not established from the available data.
 
-At 50 nodes, NCCL switches predominantly to TREE_LL (TREE_LL accounts for 35.8% of total GPU kernel time across the run, RING_LL for 0.3%), pushing total f32 AllReduce kernel time to 621 ms per step (TREE_LL: 615 ms + residual RING_LL: 5.5 ms), saturating 83% of the 748 ms backward window and ending full overlap.
+At 50 nodes, NCCL switches predominantly to TREE_LL, pushing total f32 AllReduce kernel time to 621 ms per step (TREE_LL: 615 ms + residual RING_LL: 5.5 ms) — 83% of the 748 ms backward window — ending full overlap.
 
 At 100 nodes, total f32 AllReduce kernel time is 519 ms per step (TREE_LL: 504 ms + residual RING_LL: 15 ms) — 70% of the 738 ms backward window. Notably, TREE_LL kernel launches per step fall from 34 at 50 nodes to 29 at 100 nodes at similar per-launch cost — the reduction in total AllReduce time is a count effect rather than a per-kernel speedup. The cause of the reduced launch count is not established from the available data. The reduced window saturation (83% → 70%) is consistent with the small observed improvement in backward median (748.2 → 738.4 ms), though the 100-node backward StdDev is 169.4 ms — far larger than the improvement itself — so this difference should not be over-interpreted.
 
@@ -777,7 +783,7 @@ At 100 nodes, total f32 AllReduce kernel time is 519 ms per step (TREE_LL: 504 m
 
 It is stable from 1-GPU to 10 nodes (261.8 → 284.8 ms, +23 ms total), rises moderately at 25 nodes (+17 ms), then jumps sharply at 50 nodes (+86 ms), then falls back slightly at 100 nodes (−19 ms).
 
-`ncclDevKernel_Broadcast_RING_LL` (DDP buffer sync that runs before the forward pass) is one of the contributors within this residual: it grows from 23.6 ms/step at 10 nodes to 37.1 ms/step at 25 nodes to 62.1 ms/step at 50 nodes. The Broadcast growth from 10 to 25 nodes (+13.5 ms) roughly matches the forward residual growth over the same interval (+17.2 ms). From 10 to 50 nodes, Broadcast accounts for +38.5 ms (~37%) of the +86 ms step in forward; the remaining ~47 ms is not attributable to any kernel visible in the available data. At 100 nodes, Broadcast continues to grow to 101.6 ms/step (+39.5 ms vs 50 nodes), yet the derived forward drops by 18.6 ms — implying that other untagged components within the residual improved by ~58 ms. The cause is not established from the available data. **A full per-kernel GPU trace is needed to decompose the forward residual reliably.**
+`ncclDevKernel_Broadcast_RING_LL` (DDP buffer sync that runs before the forward pass) is one of the contributors within this residual: it grows from 23.6 ms/step at 10 nodes to 37.1 ms/step at 25 nodes to 62.1 ms/step at 50 nodes. The Broadcast growth from 10 to 25 nodes (+13.5 ms) roughly matches the forward residual growth over the same interval (+17.2 ms). From 10 to 50 nodes, the forward residual grows by +103 ms (284.8 → 387.9 ms). Broadcast accounts for +38.5 ms (~37%) of that; the remaining ~65 ms is not attributable to any kernel visible in the available data. At 100 nodes, Broadcast continues to grow to 101.6 ms/step (+39.5 ms vs 50 nodes), yet the derived forward drops by 18.6 ms — implying that other untagged components within the residual improved by ~58 ms. The cause is not established from the available data. **A full per-kernel GPU trace is needed to decompose the forward residual reliably.**
 
 - **Step max and StdDev are elevated above steady-state at all multi-node scales and cannot be fully attributed from aggregate profiling data alone.** Step max excess above median ranges from 479 ms (25 nodes) to 15,901 ms (10 nodes). The NVTX summary does not record which step produced the maximum — only the aggregate min/max across all steps. The most likely contributor is a cold-start NCCL communicator on the first step: at 10 and 50 nodes, the single `ncclDevKernel_AllReduce_Sum_u32_TREE_LL` instance (11.07 s and 1.63 s respectively) is large enough that a first-step origin is certain. At 25 and 100 nodes the same kernel is negligible, so the step max excess could reflect a cold-start effect on a different collective, an intermittent NCCL stall, or scheduler-induced jitter on any step. A step-level kernel trace is required to distinguish these cases.
 
@@ -791,7 +797,7 @@ It is stable from 1-GPU to 10 nodes (261.8 → 284.8 ms, +23 ms total), rises mo
 
 **Simple profiler** (complementary to nsys, all values are per-rank averages):
 
-| Metric | 1-GPU [1] | 4-GPU (1 node) [1] | 8-GPU (2 nodes) [1] | 40-GPU (10 nodes) [1] | 100-GPU (25 nodes) [1] | 200-GPU (50 nodes) [1] | 400-GPU (100 nodes) [1] |
+| Metric | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) | 100-GPU (25 nodes) | 200-GPU (50 nodes) | 400-GPU (100 nodes) |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `run_training_batch` avg (ms) | 980.0 | 1,027 | 1,046 | 1,197 | 1,113 | 1,286 | 1,129 |
 | `backward` avg (ms) | 710.8 | 736.5 | 746.2 | 747.2 | 765.8 | 750.8 | 634.3 |
@@ -862,47 +868,7 @@ The phases map to the following operations:
 
 - **Stagger Zarr dataset opens to reduce Lustre contention (partial improvement to T0 → setup).** Currently all ranks open the same dataset files simultaneously. A simple fix is to stagger opens by local rank (`time.sleep(local_rank * 0.05)`) or have only one rank per node open files and broadcast metadata. This would not eliminate the 20.6s cost but would reduce the growth with rank count.
 
-## Summary and Conclusions
-
-This report characterised Anemoi training performance on Isambard-AI GH200 nodes across three tiers: single GPU, single node (4-GPU NVLink), and multi-node (Slingshot interconnect). The findings at each tier feed directly into the next, and together identify a clear set of bottlenecks and the configurations under which Anemoi scales well.
-
-### Single GPU
-
-The `O96` model on a single GH200 achieves ~0.97 s/step (7.93 samples/s) in eager mode. Profiling establishes that the workload is **memory-bandwidth bound**: GPU utilisation is 92.8%, but Tensor Core utilisation is only ~1.2% and Model FLOP Utilisation is ~20% of the GH200 dense BF16 peak. The GPU is continuously busy, but the work is dominated by memory-bound element-wise and graph-indexing kernels (`nvjet_hsh`, `indexSelectLargeIndex`) rather than the dense matrix operations that Tensor Cores accelerate.
-
-The main software bottleneck identified was CPU dispatch overhead: 625k kernel launches per step with frequent `aten::nonzero` synchronisation stalls. `torch.compile` fused over 50,000 element-wise operations via Triton and removed all `cudaStreamSynchronize` stalls, but did not produce a measurable throughput improvement — the workload is memory-bandwidth bound and kernel fusion alone cannot change that. The hardware ceiling is HBM3 memory bandwidth, which is a characteristic of the model's arithmetic intensity and cannot be removed without architectural changes.
-
-Activation checkpointing (`num_chunks: 2`) is required to fit within 96 GB HBM3e (34.1 GB peak vs 95.1 GB theoretical). Disabling it does not change step time, confirming the bottleneck is not recompute overhead.
-
-### Single Node (4 GPUs, NVLink)
-
-Moving from 1 to 4 GPUs over NVLink should yield ~95%+ scaling efficiency. In practice, the observed efficiency varied widely: 76.5% on average, but 95.6% on a well-conditioned node and as low as ~80% on a degraded one (nid010881: 1,234 ms step vs 987 ms 1-GPU baseline).
-
-Systematic investigation of all DDP configuration options — gradient bucket size, `gradient_as_bucket_view`, `broadcast_buffers`, data loading contention — found no meaningful improvement. The root cause was identified as **node-level kernel dispatch latency**: on one node, average `cudaLaunchKernel` latency was 215 µs vs 10–12 µs on well-performing nodes, consistent with `CUDA_LAUNCH_BLOCKING=1` being set in the job environment. With 625k launches per step this stalls the CPU continuously, costing up to 247 ms per step. On nodes where this is absent, the 4-GPU overhead is only 44 ms (4.4%), and efficiency is 95.6% — the NVLink `All-Reduce` is fully overlapped.
-
-**Recommendation:** Explicitly unset `CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` in all job scripts. Single-node efficiency is acceptable (~95.6%) once this is controlled.
-
-### Multi-Node Scaling (Slingshot interconnect)
-
-Multi-node scaling was characterised from 2 to 100 nodes (8 to 400 GPUs) on `O96`. The headline results:
-
-| Scale | Scaling Efficiency |
-| :--- | ---: |
-| 2 nodes (8 GPUs) | 96.1% |
-| 10 nodes (40 GPUs) | 94.2% |
-| 25 nodes (100 GPUs) | 94.6% |
-| 50 nodes (200 GPUs) | 84.6% |
-| 100 nodes (400 GPUs) | 85.6% |
-
-Efficiency is excellent up to 10 nodes (~94–96%) and degrades gradually to ~85% at 50 nodes, where it stabilises. The primary mechanism is the **NCCL algorithm switch**: up to 10 nodes NCCL uses RING_LL and `All-Reduce` is fully overlapped within the backward pass — completing before backward ends and adding no latency to the critical path (45% of the backward window at 10 nodes). At 50 nodes NCCL switches predominantly to TREE_LL, pushing AllReduce kernel time to 621 ms/step and saturating 83% of the 748 ms backward window — overlap ends and communication appears on the critical path.
-
-A secondary unresolved bottleneck is an unexplained ~65 ms forward overhead at 50 nodes, of which only ~38 ms is attributable to the DDP broadcast kernel (`ncclDevKernel_Broadcast_RING_LL`); the remaining ~27 ms source has not been identified.
-
-**Wall-clock optimum for `O96`** is at 100 nodes (82 s/epoch). For `N320`, the heavier per-step compute load maintains efficiency over a wider range; the practical optimum is also ~100 nodes (669 s/epoch vs 312 s at 200 nodes with nearly double the cost). Scaling beyond 100 nodes for `O96` offers no wall-clock benefit and degrades cost efficiency sharply.
-
-**Startup overhead** becomes a significant fraction of total job time at scale. At 50 nodes, startup (52 s) already exceeds steady-state training time for the 40-step profiling runs. The dominant contributors are the DDP weight broadcast from rank 0 (17.6 s at 50 nodes, 36.8 s at 100 nodes) and the NCCL first-batch topology warmup (11.1 s at 10 nodes). Both are addressable without code changes to the model itself. Reducing startup overhead is therefore the higher-priority improvement at large node counts: until it is controlled, gains in per-step scaling efficiency are masked by the fixed initialisation cost.
-
-### Further Work
+## Further Work
 
 Each profiling tier concludes with a set of improvement opportunities and open questions that were identified but not pursued within the scope of this work. These are documented inline at the end of each section and can be picked up independently as follow-on investigations.
 
