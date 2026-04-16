@@ -355,11 +355,11 @@ Each Isambard-AI node hosts **4 GH200 GPUs** connected via NVLink. Moving from 1
 
 **Intra-node scaling result.** On a correctly configured node, 4-GPU scaling efficiency is **95.7%** — approximately 1,031 ms/step at 4 GPUs vs 987 ms/step at 1 GPU, a 44 ms (4.3%) overhead. This is within the expected range for a graph model communicating over NVLink.
 
-**Background.** Early 4-GPU runs showed **76.5% efficiency** (~1,185–1,234 ms/step). `CUDA_LAUNCH_BLOCKING=1` was present in the SLURM job environment — likely carried over from a prior session — but was not recognised as the cause, triggering a seven-action investigation before the root cause was found. The key lesson: **verify the job environment before beginning any performance investigation**. A misconfigured environment variable invalidated the initial baseline and drove a substantial profiling campaign that could have been avoided.
+**Background.** Early single node/4-GPU runs showed **76.5% efficiency** (~1,185–1,234 ms/step). `CUDA_LAUNCH_BLOCKING=1` was present in the SLURM job environment — carried over from a prior session — but was not recognised as the cause, triggering a seven-action investigation before the root cause was found. The key lesson: **verify the job environment before beginning any performance investigation**. A misconfigured environment variable invalidated the initial baseline and drove a substantial profiling campaign that could have been avoided.
 
-`CUDA_LAUNCH_BLOCKING=1` forces every CUDA kernel launch to be synchronous, turning ~11 µs async dispatches into blocking waits. With ~625,000 kernel launches over 200 steps (~3,130 per step), the cumulative cost is ~220 ms. DDP amplifies the effect further through additional `cudaStreamSynchronize` calls for NCCL bucket coordination. **`CUDA_LAUNCH_BLOCKING` must be explicitly unset in all SLURM job scripts.**
+`CUDA_LAUNCH_BLOCKING=1` forces every CUDA kernel launch to be synchronous, turning ~11 µs async dispatches into blocking waits. With ~625,000 kernel launches over 200 steps (~3,130 per step), the cumulative cost is ~220 ms. DDP amplifies the effect further through additional `cudaStreamSynchronize` calls for NCCL bucket coordination.
 
-Despite being triggered by a misconfiguration, the investigation is retained rather than removed. It covers NCCL overlap profiling, forward/backward isolation, DDP configuration, I/O and thermal ruling-out, and kernel dispatch analysis — the natural sequence of checks for any intra-node scaling regression — and serves as a practical diagnostic reference for future work on this or similar clusters.
+Despite being triggered by a misconfiguration, the investigation is retained in this report rather than removed. It covers NCCL overlap profiling, forward/backward isolation, DDP configuration, I/O and thermal ruling-out, and kernel dispatch analysis — the natural sequence of checks for any intra-node scaling regression — and serves as a practical diagnostic reference for future work. 
 
 ### Investigation Summary
 
@@ -422,10 +422,7 @@ In DDP, PyTorch can overlap gradient communication with the backward pass: as so
 
 Key metrics to extract from the nsys timeline:
 - **`All-Reduce` duration** vs backward pass duration — does `All-Reduce` fit inside the backward window?
-- **NVLink bandwidth utilisation** vs theoretical peak (600 GB/s bidirectional on GH200)
-- **`cudaStreamSynchronize` activity** — its elimination confirmed in the Single GPU nsys deep-dive should be preserved at 4 GPUs; any reappearance indicates DDP is forcing explicit synchronisation
-
-**Connection to 1-GPU work:** The Phase 2 nsys analysis in the Single GPU section showed the backward pass dominates at ≈ 0.48 s of the 0.74 s step time (GPU kernel execution time from nsys, not wall-clock). NCCL `All-Reduce` for the Anemoi model (231M parameters × 2 bytes BF16 = 462 MB) must complete within this window to avoid a throughput penalty.
+- **Implied NVLink bandwidth** — derived from NCCL message size and `All-Reduce` duration; compared against the 600 GB/s theoretical peak to assess whether NVLink is saturated
 
 A lightweight Lightning callback (`anemoi/training/diagnostics/callbacks/nvtx.py`) was added to emit `torch.cuda.nvtx.range_push/pop` markers for the `step`, `backward`, and `optimizer` phases, adding labelled NVTX bands to the Nsight Systems timeline and making step boundaries and the DDP `All-Reduce` window immediately identifiable. The callback is registered via `diagnostics.callbacks` in the Hydra config, requiring no changes to `train.py`.
 
@@ -442,11 +439,9 @@ A lightweight Lightning callback (`anemoi/training/diagnostics/callbacks/nvtx.py
 
 The backward phase dominates at 71.5%, with the optimizer taking just 1.3%. The forward pass accounts for the remaining 27.2%.
 
-**`All-Reduce` duration vs backward pass.** The `NCCL:ncclAllReduce` NVTX range recorded 6,256 instances with a total of 4,466 ms across 200 steps, or **22.3 ms of NCCL time per step** — just **2.5% of the 882 ms backward window**. With 31 buckets per step at a median of 0.38 ms each (mean ~0.71 ms — the distribution is right-skewed, with the last few buckets accumulating more gradients and taking longer), every individual `All-Reduce` is negligible relative to the backward duration. A correctly functioning DDP overlap mechanism should hide this cost entirely.
+**`All-Reduce` duration vs backward pass.** The Anemoi model has 231M parameters × 2 bytes BF16 = 462 MB of gradients. The `NCCL:ncclAllReduce` NVTX range recorded 6,256 instances with a total of 4,466 ms across 200 steps, or **22.3 ms of NCCL time per step** — just **2.5% of the 882 ms backward window**. With 31 buckets per step (6,256 instances ÷ 200 steps) at a median of 0.38 ms each (mean ~0.71 ms — the distribution is right-skewed, with the last few buckets accumulating more gradients and taking longer), every individual `All-Reduce` is negligible relative to the backward duration. A correctly functioning DDP overlap mechanism should hide this cost entirely.
 
-**NVLink bandwidth utilisation.** The RING_LL algorithm was used for all `All-Reduce`s. Total NCCL data volume per step (ring `All-Reduce`: 2 × ¾ × 462 MB = **693 MB/step**) divided by the 22.3 ms of NCCL time gives an implied bandwidth of ≈ **31 GB/s**, or roughly **5% of the 600 GB/s NVLink peak**. This low utilisation is characteristic of RING_LL: with 31 small buckets per step, each transfer is latency-bound, not bandwidth-bound. RING (non-LL) would achieve higher bandwidth but requires larger messages.
-
-**`cudaStreamSynchronize` activity.** There were 21,385 `cudaStreamSynchronize` calls (≈107 per step) at an average of **6.1 µs** each, totalling ≈0.65 ms per step. The sub-10 µs average indicates the stream is already at or near the synchronisation point when each call is issued — no stall is occurring. The `cudaStreamSynchronize` stall elimination confirmed in the Single GPU nsys deep-dive is preserved at 4 GPUs.
+**NVLink bandwidth utilisation.** Total NCCL data volume per step (2 × ¾ × 462 MB = **693 MB/step**) divided by the 22.3 ms of NCCL time gives an implied bandwidth of ≈ **31 GB/s** — 9% of the 342.5 GB/s practical NVLink peak. This is **not a bottleneck**: NCCL selected RING_LL (optimised for low-latency small messages) for all 31 per-step transfers, which is bandwidth-inefficient by design. NVLink has substantial headroom and is not limiting throughput.
 
 **Cross-rank backward comparison.** Profiling all four ranks with the NVTX callback and comparing `:backward` and `:step` medians directly tests whether the overhead is a load-imbalance barrier (one slow rank stalling the others) or a uniform per-rank cost:
 
