@@ -36,13 +36,8 @@ Early runs showed 76.5% efficiency due to `CUDA_LAUNCH_BLOCKING=1` present in th
 
 Multi-node scaling was characterised from 2 to 100 nodes (8 to 400 GPUs) on `O96`. The headline results:
 
-| Scale | Scaling Efficiency |
-| :--- | ---: |
-| 2 nodes (8 GPUs) | 94.2% |
-| 10 nodes (40 GPUs) | 94.6% |
-| 25 nodes (100 GPUs) | 90.8% |
-| 50 nodes (200 GPUs) | 84.6% |
-| 100 nodes (400 GPUs) | 85.6% |
+![Multi-Node Scaling Efficiency — Executive Summary](plots/0.1_exec_summary_scaling.png)
+*Figure 0.1. Scaling efficiency at each node count. Green bars (≥ 93%) indicate full AllReduce overlap; the drop below 88% at 50–100 nodes marks the onset of TREE_LL communication on the critical path.*
 
 Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85% at 50 nodes, where it stabilises. The primary mechanism is the **NCCL algorithm switch**: up to 10 nodes NCCL uses RING_LL and `All-Reduce` is fully overlapped within the backward pass. At 50 nodes NCCL switches predominantly to TREE_LL, pushing AllReduce kernel time to 621 ms/step and saturating 83% of the 748 ms backward window — overlap ends and communication appears on the critical path.
 
