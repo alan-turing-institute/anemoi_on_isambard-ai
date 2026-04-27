@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Anemoi is an open-source framework developed by ECMWF (The European Centre for Medium-Range Weather Forecasts) for training data-driven numerical weather prediction models [1, 2]. Its flagship models are graph-based neural networks that operate over irregular geographic meshes, combining a Graph Transformer encoder-processor-decoder architecture with domain-specific spherical harmonics kernels. Training these models at production resolution is computationally intensive: a single training step on the `O96` dataset [3] — an octahedral reduced Gaussian grid with approximately 1° (≈111 km) horizontal resolution and ~40,320 grid points — requires ~187 TFLOPs of computation and generates ~95 GB of theoretical activation memory, necessitating both high-memory accelerators and efficient distributed training across many nodes. The `N320` dataset (a higher-resolution octahedral grid, approximately 0.25°) is used for initial scaling comparisons alongside `O96`; both datasets reach the same wall-clock optimum at 100 nodes with the same setup-overhead growth pattern, though `N320`'s heavier per-step compute delays the crossover point. All detailed profiling focuses on `O96`, as the bottleneck characterisation is expected to carry over to `N320`.
+Anemoi is an open-source framework developed by ECMWF (The European Centre for Medium-Range Weather Forecasts) for training data-driven numerical weather prediction models [1, 2]. Its flagship models are graph-based neural networks that operate over irregular geographic meshes, combining a Graph Transformer encoder-processor-decoder architecture with domain-specific spherical harmonics kernels. Training these models at production resolution is computationally intensive: a single training step on the `O96` dataset [3] — an octahedral reduced Gaussian grid with approximately 1° (≈111 km) horizontal resolution and ~40,320 grid points — requires ~187 TFLOPs of computation and generates ~95 GB of theoretical activation memory, necessitating both high-memory accelerators and efficient distributed training across many nodes. The `N320` dataset (a higher-resolution octahedral grid, approximately 0.25°) is used for initial scaling comparisons alongside `O96`; both datasets reach the same wall-clock minimum at 100 nodes with the same setup-overhead growth pattern, though `N320`'s heavier per-step compute delays the crossover point. All detailed profiling focuses on `O96`, as the bottleneck characterisation is expected to carry over to `N320`.
 
 Isambard-AI [4] is a UK national AI research supercomputer hosted at the University of Bristol, based on NVIDIA GH200 Grace Hopper Superchips [5, 16]. Each node provides 4 GH200 GPUs with 96 GB HBM3e each, connected intra-node via NVLink, and inter-node via the HPE Slingshot 11 high-speed interconnect [17]. Isambard-AI is one of the first large-scale GH200 deployments available for open research, and its performance characteristics for distributed deep learning workloads — particularly for memory-bandwidth-bound models like Anemoi — are not yet well characterised.
 
@@ -110,12 +110,8 @@ NCCL (NVIDIA Collective Communications Library) [6] is the communication backend
 
 NCCL `All-Reduce` benchmarks were carried out on Isambard-AI across 1, 10, 50, and 200 nodes.
 
-| Nodes | Total GPUs | Peak Bus Bandwidth (GB/s) | Note |
-| :--- | :--- | :--- | :--- |
-| **1** | 4 | **342.5** | NVLink baseline |
-| **10** | 40 | **92.7** | Slingshot; stable |
-| **50** | 200 | **91.2** | Slingshot; stable (−1.6% vs 10 nodes) |
-| **200** | 800 | **70.8** | ~23% drop vs 10–50 nodes |
+![NCCL All-Reduce Benchmark Bandwidth](plots/2.1_nccl_benchmark.png)
+*Figure 5. Peak bus bandwidth of NCCL `All-Reduce` as a function of node count. NVLink (1 node) provides 342.5 GB/s; Slingshot bandwidth is stable at 91–93 GB/s from 10 to 50 nodes, dropping ~23% at 200 nodes.*
 
 Bandwidth is stable between 10 and 50 nodes (92.7 → 91.2 GB/s), confirming that the scaling degradation seen in the initial tests is **not** caused by network communication bandwidth. The physical interconnect has headroom to spare; the overhead must originate elsewhere. The following sections investigate it tier by tier, starting from a single GPU.
 
@@ -190,13 +186,8 @@ At baseline, `cudaStreamSynchronize` accounted for **91% of CUDA API time** (~14
 
 With CPU-side stalls eliminated, the remaining GPU kernel time for 200 steps breaks down as:
 
-| Workload | Share | Time (~) | Description |
-| :--- | :--- | :--- | :--- |
-| **`nvjet_hsh` kernels** | ~36% | ~54 s | Spherical harmonics and graph message-passing |
-| **FlashAttention** (fwd + bwd) | ~21% | ~32 s | Transformer attention layers |
-| **`indexSelectLargeIndex`** | ~13% | ~20 s | Sparse routing between geographic mesh nodes |
-| **D2H memory transfers** | <1% | ~1 s | No implicit synchronisation stalls |
-| **Other kernels** | ~29% | ~44 s | Remaining element-wise, normalisation, and utility kernels |
+![GPU Kernel Time Breakdown](plots/3.1_kernel_breakdown.png)
+*Figure 6. GPU kernel time breakdown by type (200 steps, compiled BF16, rank 0). `nvjet_hsh` dominates at ~36%; FlashAttention contributes ~21%; sparse routing (`indexSelectLargeIndex`) accounts for ~13%.*
 
 `flash_fwd_kernel` is called 2× more often than `flash_bwd_kernel`, confirming activation checkpointing is active. Fused AdamW showed no improvement (+0.2% avg batch time) — the optimizer update is not a meaningful cost centre.
 
@@ -207,6 +198,9 @@ With CPU-side stalls eliminated, the remaining GPU kernel time for 200 steps bre
 `nsys` shows *when* the GPU is busy; ncu (Nsight Compute) [13] measures *how efficiently* each kernel uses the hardware. By replaying each CUDA kernel with hardware performance counters, ncu reports Speed-of-Light (SOL) metrics — memory bandwidth and compute throughput as a percentage of theoretical peak. GH200’s ridge point is ~495 FLOP/Byte (1,979 TFLOP/s peak BF16 ÷ 4.0 TB/s peak HBM3e bandwidth [5, 16]); kernels below this arithmetic intensity are memory-bound regardless of GPU utilisation [10]. ncu was run on the baseline (eager BF16) configuration using `--set roofline`, capturing 500 kernels after skipping one warmup step (~3,130 kernel launches), covering all distinct kernel types.
 
 The per-kernel SOL metrics reveal three distinct performance regimes:
+
+![ncu Roofline: Memory SOL vs Compute SOL per Kernel Type](plots/3.2_roofline.png)
+*Figure 7. Roofline scatter plot of Memory SOL (x-axis) vs Compute SOL (y-axis) for the dominant kernel types. Kernels in the upper-right are near the ridge point; kernels shifted left are memory-bound. The GH200 ridge point (~495 FLOP/Byte) separates the memory-bound and compute-bound regions.*
 
 | Kernel type | Memory SOL | Compute SOL | Regime |
 | :--- | :--- | :--- | :--- |
@@ -240,6 +234,9 @@ Different step-time figures appear across sections because they use different to
 All throughput and scaling comparisons use the simple profiler (`run_training_batch`) unless explicitly stated otherwise.
 
 Each action was tested independently against the baseline (batch size 8, eager BF16); they are not stacked:
+
+![Single GPU Optimisation Actions: Throughput Comparison](plots/3.3_single_gpu_actions.png)
+*Figure 8. Training throughput (samples/s) for each optimisation action versus baseline. All actions fail to improve throughput, confirming the bottleneck is HBM3e memory bandwidth rather than any software inefficiency.*
 
 | Configuration | Batch | Avg Batch Time (s) | Throughput (samples/s) | Peak Memory | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -374,27 +371,23 @@ where $T_{\text{1-GPU}}$ is the median step time on 1 GPU and $T_{N\text{-GPU}}$
 
 **Per-step scaling** (Simple profiler, NVTX, nsys profile, rank 0):
 
-| Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) | 100-GPU (25 nodes) | 200-GPU (50 nodes) | 400-GPU (100 nodes) |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Step Med (ms) | 977.0 | 1016.8 | 1037.1 | 1032.7 | 1076.5 | 1154.8 | 1141.3 |
-| Step Min (ms) | 966.1 | 996.2 | 1016.2 | 1003.2 | 1034.8 | 1024.8 | 562.8 |
-| Step Max (ms) | 1189.3 | 1511.6 | 1563.8 | 16934.2 | 1555.4 | 4183.9 | 2806.9 |
-| Step StdDev (ms) | 22.3 | 71.0 | 58.0 | 1180.8 | 114.3 | 502.4 | 470.1 |
-| Backward Med (ms) | 708.9 | 734.9 | 744.2 | 737.2 | 764.9 | 748.2 | 738.4 |
-| Backward Min (ms) | 701.6 | 723.7 | 714.6 | 686.2 | 741.3 | 714.5 | 384.9 |
-| Backward Max (ms) | 921.9 | 992.6 | 914.1 | 958.3 | 837.2 | 867.7 | 823.5 |
-| Backward StdDev (ms) | 17.0 | 22.1 | 16.6 | 36.4 | 17.6 | 30.7 | 169.4 |
-| Optimizer Med (ms) | 6.3 | 8.9 | 8.6 | 10.7 | 9.6 | 18.6 | 33.6 |
-| Optimizer Min (ms) | 5.4 | 7.3 | 7.3 | 6.3 | 5.9 | 7.8 | 7.7 |
-| Optimizer Max (ms) | 62.7 | 346.4 | 79.7 | 3602.0 | 393.8 | 409.1 | 338.1 |
-| Optimizer StdDev (ms) | 4.0 | 31.6 | 5.4 | 323.9 | 61.2 | 110.1 | 85.9 |
-| Forward Med (derived) | 261.8 | 272.9 | 284.3 | 284.8 | 302.0 | 387.9 | 369.3 |
-| `cudaLaunchKernel` Med (µs) | 8.224 | 8.736 | 8.128 | 7.712 | 7.488 | 7.392 | 7.712 |
-| **Scaling efficiency** | 100% | 96.1% | 94.2% | 94.6% | 90.8% | 84.6% | 85.6% |
-| **Effective GPU count** | 1.0 | 3.8 | 7.5 | 37.8 | 90.8 | 169.2 | 342.4 |
-| **Wasted GPUs** | 0 | 0.2 | 0.5 | 2.2 | 9.2 | 30.8 | 57.6 |
-| **Step overhead vs 1-GPU (ms)** | 0 | +39.7 | +60.1 | +55.7 | +99.5 | +177.7 | +164.3 |
-| **Overhead per node (ms)** | — | 39.7 | 30.0 | 5.6 | 4.0 | 3.6 | 1.6 |
+![Multi-Node Scaling Efficiency](plots/4.1_scaling_efficiency.png)
+*Figure 9. Scaling efficiency vs node count. Efficiency is flat at ~94–96% up to 10 nodes, degrades to ~85% at 50 nodes, then stabilises. The drop at 50 nodes coincides with the NCCL RING_LL → TREE_LL algorithm switch.*
+
+![Multi-Node Step Time Phase Breakdown](plots/4.2_step_breakdown.png)
+*Figure 10. Median step time decomposed into backward, forward (derived), and optimizer phases by node count. Backward is relatively stable; the forward residual grows sharply at 50 nodes, consistent with the DDP buffer broadcast scaling over Slingshot.*
+
+| Scale | Step Med (ms) | Scaling efficiency | Step overhead vs 1-GPU (ms) | Overhead per node (ms) |
+| :--- | ---: | ---: | ---: | ---: |
+| 1-GPU | 977.0 | 100% | 0 | — |
+| 4-GPU (1 node) | 1016.8 | 96.1% | +39.7 | 39.7 |
+| 8-GPU (2 nodes) | 1037.1 | 94.2% | +60.1 | 30.0 |
+| 40-GPU (10 nodes) | 1032.7 | 94.6% | +55.7 | 5.6 |
+| 100-GPU (25 nodes) | 1076.5 | 90.8% | +99.5 | 4.0 |
+| 200-GPU (50 nodes) | 1154.8 | 84.6% | +177.7 | 3.6 |
+| 400-GPU (100 nodes) | 1141.3 | 85.6% | +164.3 | 1.6 |
+
+Full per-step timing statistics (backward/forward/optimizer med/min/max/stddev) are in [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail).
 
 > [!NOTE]
 > Each configuration is based on a single experiment. The reported values should be treated as indicative rather than statistically robust - run-to-run variance in step time, NCCL behaviour, and job scheduling noise are not accounted for. All timing statistics are collected from rank 0; in synchronous DDP training the effective step time is bounded by the slowest rank, so inter-rank variance is not captured and rank 0 may underestimate true wall-clock step time.
@@ -408,14 +401,17 @@ where $T_{\text{1-GPU}}$ is the median step time on 1 GPU and $T_{N\text{-GPU}}$
 
 To identify how much time is taken by NCCL communication and whether it is on the critical path, the GPU kernel time for the f32 AllReduce kernels `ncclDevKernel_AllReduce_Sum_f32_*` (the main NCCL collective for gradient synchronisation) can be compared to the backward NVTX wall time in `nsys stats` reports.
 
-| Case | Steps | RING_LL (ms/step) | TREE_LL (ms/step) | Total (ms/step) | Backward window | Saturation |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 node | 200 | 42.6 | — | 42.6 | 734.9 | 6% |
-| 2 nodes | 200 | 129.2 | 16.4 | 145.6 | 744.2 | 20% |
-| 10 nodes | 200 | 287.8 | 41.7 | 329.6 | 737.2 | 45% |
-| 25 nodes | 80 | 317.3 | 59.8 | 377.1 | 764.9 | 49% |
-| 50 nodes | 40 | 5.5 | 615.2 | 620.7 | 748.2 | 83% |
-| 100 nodes | 24 | 15.1 | 503.8 | 518.9 | 738.4 | 70% |
+![NCCL AllReduce Saturation vs Backward Window](plots/4.3_nccl_allreduce.png)
+*Figure 11. NCCL AllReduce kernel time (RING_LL + TREE_LL) as a fraction of the backward NVTX window at each scale. Saturation remains below 50% up to 25 nodes (AllReduce fully overlapped), jumps to 83% at 50 nodes when NCCL switches to TREE_LL, then eases to 70% at 100 nodes.*
+
+| Case | RING_LL (ms/step) | TREE_LL (ms/step) | Total (ms/step) | Backward window | Saturation |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| 1 node | 42.6 | — | 42.6 | 734.9 | 6% |
+| 2 nodes | 129.2 | 16.4 | 145.6 | 744.2 | 20% |
+| 10 nodes | 287.8 | 41.7 | 329.6 | 737.2 | 45% |
+| 25 nodes | 317.3 | 59.8 | 377.1 | 764.9 | 49% |
+| 50 nodes | 5.5 | 615.2 | 620.7 | 748.2 | 83% |
+| 100 nodes | 15.1 | 503.8 | 518.9 | 738.4 | 70% |
 
 Total f32 AllReduce GPU kernel time per step grows 42.6 ms (1 node) → 145.6 ms (2 nodes) → 329.6 ms (10 nodes), yet the backward NVTX wall time at 10 nodes is only 737 ms (45% saturation) — the `All-Reduce` runs concurrently with compute and is not on the critical path.
 
@@ -462,6 +458,9 @@ The phases map to the following operations:
 
 **Startup overhead** (wall-clock from T0 to end of first batch, rank 0):
 
+![Startup Overhead by Phase and Node Count](plots/4.4_startup_overhead.png)
+*Figure 12. Startup overhead decomposed by phase at each node count. The dominant cost shifts from NCCL first-batch warmup at 10 nodes (16.9 s) to DDP weight broadcast at 50–100 nodes (17.6–36.8 s). The 25-node T0→setup bar is anomalously tall (164.4 s) due to a single-run Lustre contention spike.*
+
 | Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) | 100-GPU (25 nodes) | 200-GPU (50 nodes) | 400-GPU (100 nodes) |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | T0 → setup (model + data ready) | 11.2 s | 12.7 s | 12.0 s | 18.0 s | 164.4 s † | 20.6 s | 28.8 s |
@@ -503,6 +502,36 @@ Each profiling tier concludes with a set of improvement opportunities and open q
 This section contains supporting data and statistical caveats for the condensed findings in the [Multi Node Scaling](#multi-node-scaling) section.
 
 ### Simple Profiler Cross-Validation (Action 1)
+
+The simple profiler provides per-rank averages complementary to the nsys rank-0 medians. All values are per-rank averages.
+
+### Full Per-Step Timing Statistics (Action 1)
+
+The condensed scaling summary in the main section omits per-phase min/max/stddev. Full statistics are below.
+
+| Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) | 100-GPU (25 nodes) | 200-GPU (50 nodes) | 400-GPU (100 nodes) |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Step Med (ms) | 977.0 | 1016.8 | 1037.1 | 1032.7 | 1076.5 | 1154.8 | 1141.3 |
+| Step Min (ms) | 966.1 | 996.2 | 1016.2 | 1003.2 | 1034.8 | 1024.8 | 562.8 |
+| Step Max (ms) | 1189.3 | 1511.6 | 1563.8 | 16934.2 | 1555.4 | 4183.9 | 2806.9 |
+| Step StdDev (ms) | 22.3 | 71.0 | 58.0 | 1180.8 | 114.3 | 502.4 | 470.1 |
+| Backward Med (ms) | 708.9 | 734.9 | 744.2 | 737.2 | 764.9 | 748.2 | 738.4 |
+| Backward Min (ms) | 701.6 | 723.7 | 714.6 | 686.2 | 741.3 | 714.5 | 384.9 |
+| Backward Max (ms) | 921.9 | 992.6 | 914.1 | 958.3 | 837.2 | 867.7 | 823.5 |
+| Backward StdDev (ms) | 17.0 | 22.1 | 16.6 | 36.4 | 17.6 | 30.7 | 169.4 |
+| Optimizer Med (ms) | 6.3 | 8.9 | 8.6 | 10.7 | 9.6 | 18.6 | 33.6 |
+| Optimizer Min (ms) | 5.4 | 7.3 | 7.3 | 6.3 | 5.9 | 7.8 | 7.7 |
+| Optimizer Max (ms) | 62.7 | 346.4 | 79.7 | 3602.0 | 393.8 | 409.1 | 338.1 |
+| Optimizer StdDev (ms) | 4.0 | 31.6 | 5.4 | 323.9 | 61.2 | 110.1 | 85.9 |
+| Forward Med (derived) | 261.8 | 272.9 | 284.3 | 284.8 | 302.0 | 387.9 | 369.3 |
+| `cudaLaunchKernel` Med (µs) | 8.224 | 8.736 | 8.128 | 7.712 | 7.488 | 7.392 | 7.712 |
+| **Scaling efficiency** | 100% | 96.1% | 94.2% | 94.6% | 90.8% | 84.6% | 85.6% |
+| **Effective GPU count** | 1.0 | 3.8 | 7.5 | 37.8 | 90.8 | 169.2 | 342.4 |
+| **Wasted GPUs** | 0 | 0.2 | 0.5 | 2.2 | 9.2 | 30.8 | 57.6 |
+| **Step overhead vs 1-GPU (ms)** | 0 | +39.7 | +60.1 | +55.7 | +99.5 | +177.7 | +164.3 |
+| **Overhead per node (ms)** | — | 39.7 | 30.0 | 5.6 | 4.0 | 3.6 | 1.6 |
+
+### Simple Profiler Cross-Validation
 
 The simple profiler provides per-rank averages complementary to the nsys rank-0 medians. All values are per-rank averages.
 
