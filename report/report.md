@@ -8,7 +8,7 @@ Isambard-AI [4] is a UK national AI research supercomputer hosted at the Univers
 
 This report documents a systematic investigation of Anemoi training performance on Isambard-AI, starting from a single GPU and scaling up to 100 nodes (400 GPUs) for detailed profiling. The scope is limited to computational performance characterisation — throughput, step time, scaling efficiency, and hardware utilisation. Model quality and training convergence are not assessed. The work is structured around three questions:
 
-1. **What is the single-GPU performance ceiling on GH200, and what are the software bottlenecks?**
+1. **What is the single-GPU performance ceiling on GH200, and what are the bottlenecks?**
 2. **How efficiently does Anemoi scale across 4 GPUs within a single node (NVLink)?**
 3. **How does multi-node scaling behave over Slingshot, and where does communication become the bottleneck?**
 
@@ -20,7 +20,7 @@ Anemoi training on Isambard-AI GH200 nodes was characterised across three tiers:
 
 ### Single GPU
 
-The `O96` model on a single GH200 achieves ~0.97 s/step (7.93 samples/s) in eager mode. Profiling establishes that the workload is **memory-bandwidth bound**: GPU utilisation is 92.8%, but Tensor Core utilisation is only ~1.2% and Model FLOP Utilisation is ~20% of the GH200 dense BF16 peak. The GPU is continuously busy, but the work is dominated by memory-bound element-wise and graph-indexing kernels (`nvjet_hsh`, `indexSelectLargeIndex`) rather than the dense matrix operations that Tensor Cores accelerate.
+The `O96` model on a single GH200 achieves ~0.97 s/step (7.93 samples/s) in eager mode. Profiling establishes that the workload is **memory-bandwidth bound**: GPU utilisation is 92.8%, but Tensor Core utilisation is only ~1.2% and Model FLOP Utilisation is ~20% of the GH200 dense BF16 peak. Direct hardware measurement with ncu confirms this: CUTLASS GEMM kernels reach 88–96% of peak HBM3e bandwidth but only 30–36% of peak compute throughput, placing them deep in the memory-bound region of the roofline. The GPU is continuously busy, but the dominant kernels do not have sufficient arithmetic intensity to exploit Tensor Cores.
 
 The main software bottleneck identified was CPU dispatch overhead: ~3,130 kernel launches per step with frequent `aten::nonzero` synchronisation stalls. `torch.compile` fused over 50,000 element-wise operations via Triton and removed all `cudaStreamSynchronize` stalls, but did not produce a measurable throughput improvement — the workload is memory-bandwidth bound and kernel fusion alone cannot change that. The hardware ceiling is HBM3 memory bandwidth, which is a characteristic of the model's arithmetic intensity and cannot be removed without architectural changes.
 
@@ -54,7 +54,7 @@ Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85
 
 For readers focused on improving training throughput or reducing job turnaround time:
 
-- **Single-GPU throughput** — the remaining software cost centres (graph indexing and spherical harmonics operations) are documented in [Optimisation Actions](#optimisation-actions). Both are memory-bandwidth-bound; reducing their cost would require changes to model data access patterns or kernel implementations.
+- **Single-GPU throughput** — the dominant kernel classes (GEMMs, element-wise operations) are hardware-bound at the HBM3 memory-bandwidth ceiling; no software change can address this without increasing arithmetic intensity. The one actionable cost centre is `indexSelectLargeIndex` (~13% of runtime), which is latency/cache-bound due to irregular sparse access and could be reduced by pre-computing graph indices. `nvjet_hsh` (~36% of runtime) is already near the ridge point and is not a target. Details are in [Optimisation Actions](#optimisation-actions).
 - **Single-node efficiency** — the primary risk is environment contamination (`CUDA_LAUNCH_BLOCKING`). Guidance is in [Action 6: Node-Level Performance Variability](#action-6-node-level-performance-variability). The residual forward-pass overhead at 4 GPUs is characterised in [Action 8: Characterising the Multi-Rank Overhead with NVTX Markers](#action-8-characterising-the-multi-rank-overhead-with-nvtx-markers).
 - **Multi-node step time** — at 50+ nodes, AllReduce communication saturates the backward window and is on the critical path. Potential levers are discussed in [Action 1: Baseline Multi-Node Training Runs](#action-1-baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
 - **Multi-node startup time** — at 100 nodes startup overhead accounts for ~79 s, dominated by the DDP weight broadcast and NCCL warmup. Targets are documented in [Action 2: Startup Overhead](#action-2-startup-overhead) under *Startup improvement opportunities*.
@@ -120,6 +120,18 @@ NCCL `All-Reduce` benchmarks were carried out on Isambard-AI across 1, 10, 50, a
 Bandwidth is stable between 10 and 50 nodes (92.7 → 91.2 GB/s), confirming that the scaling degradation seen in the initial tests is **not** caused by network communication bandwidth. The physical interconnect has headroom to spare; the overhead must originate elsewhere. The following sections investigate it tier by tier, starting from a single GPU.
 
 ## Single GPU
+
+Five profiling tools were used in sequence to characterise performance, each answering a different question:
+
+| Tool | What it measures | Key question answered |
+| :--- | :--- | :--- |
+| **Anemoi simple profiler** | Step time, throughput, forward/backward/optimizer breakdown | What is the baseline throughput and how does each action change it? |
+| **Anemoi detailed profiler** | Model characteristics: parameter count, TMACs, theoretical activation memory, peak measured memory | What are the model's compute and memory demands, and is activation checkpointing necessary? |
+| **PyTorch Profiler / TensorBoard** | Operator host time, GPU utilisation, Tensor Core utilisation, kernel occupancy | Which operations are slow, and what do indirect hardware metrics indicate? |
+| **nsys (Nsight Systems)** | CPU–GPU timeline, CUDA API time, kernel launch counts, kernel time by type | Is the GPU being kept busy, and do software changes alter the underlying dispatch structure? |
+| **ncu (Nsight Compute)** | Per-kernel memory and compute throughput as % of hardware peak (Speed-of-Light) | Are kernels actually memory-bound or compute-bound at the hardware level? |
+
+Together they form a funnel — from throughput at the top down to direct hardware measurement — progressively narrowing the diagnosis from *slow* to *why*.
 
 ### Baseline Characterisation
 
@@ -365,6 +377,45 @@ Fused AdamW was evaluated to test whether the optimizer update was a meaningful 
 
 **Conclusion:** `torch.compile` eliminated all `cudaStreamSynchronize` stalls and reduced kernel launches by 31%. However, since the GPU was already memory-bandwidth bound at baseline (92.8% utilisation, ~1.2% Tensor Core utilisation), removing the CPU-side stalls did not improve throughput. The hardware ceiling is HBM3 memory bandwidth. Compiled BF16 is used as the starting point for multi-node scaling experiments.
 
+### ncu Hardware Measurement
+
+`nsys` shows *when* the GPU is busy and for how long; it does not measure how efficiently each kernel uses the hardware. Nsight Compute (ncu) is a kernel-level profiler that replays each CUDA kernel with hardware performance counters inserted, directly measuring memory bandwidth utilisation and compute throughput as a percentage of theoretical peak — the two axes of the roofline model. This makes it the definitive tool for classifying whether a kernel is memory-bound or compute-bound.
+
+#### Roofline Model
+
+GH200 has two performance ceilings:
+
+- **Memory ceiling**: 4.0 TB/s peak HBM3e bandwidth
+- **Compute ceiling**: ~1,979 TFLOP/s peak BF16 (Tensor Core)
+- **Ridge point**: ~495 FLOP/Byte — the arithmetic intensity at which a kernel transitions from memory-bound to compute-bound
+
+A kernel operating below the ridge point is constrained by how fast data can be loaded from HBM3e, not by how fast the GPU can compute. Increasing compute throughput does nothing; the only way to improve throughput is to reduce data movement or increase reuse.
+
+#### Measurement
+
+ncu was run on the baseline (eager BF16) configuration using `--set roofline` to collect Speed-of-Light (SOL) metrics — the percentage of peak memory bandwidth and peak SM compute throughput reached by each kernel. A launch-skip of 3,130 kernels (one warmup step) was applied before capturing 500 kernels, covering all distinct kernel types in a training step.
+
+#### Results
+
+The per-kernel Speed-of-Light metrics reveal three distinct performance regimes:
+
+| Kernel type | Memory SOL | Compute SOL | Regime |
+| :--- | :--- | :--- | :--- |
+| CUTLASS GEMM (linear projections) | **88–96%** | 30–36% | Memory-bound |
+| Element-wise kernels (add, mul, copy) | **90–93%** | 13–29% | Memory-bound |
+| Layer norm backward | **90%** | 53% | Memory-bound |
+| `nvjet_hsh` (graph message-passing) | 65–75% | **80–95%** | Near ridge point |
+| FlashAttention (`flash_fwd/bwd_kernel`) | 65–75% | **80–95%** | Near ridge point |
+| `indexFuncLargeIndex` (sparse routing) | 14% | 56% | Latency/cache-bound |
+
+**GEMM kernels are memory-bound.** Linear projections — which should saturate Tensor Cores on large matrices — are instead bottlenecked by HBM3e bandwidth. This is the direct hardware confirmation of low Tensor Core utilisation observed via TensorBoard. O96's matrix dimensions are determined by the number of grid points (~40,320) and the batch size; the resulting arithmetic intensity falls well below GH200's ridge point of ~495 FLOP/Byte, placing every GEMM in the memory-bound region of the roofline.
+
+**`nvjet_hsh` and FlashAttention are near the ridge point.** Both memory and compute SOL are high simultaneously, meaning these kernels are well-optimised and are not the limiting bottleneck. FlashAttention achieves high arithmetic intensity by tiling the key/value matrices in SRAM, avoiding repeated HBM reads.
+
+**Sparse routing is latency-bound.** `indexFuncLargeIndex` shows low SOL on both axes — it is bottlenecked by irregular memory access patterns from Anemoi's geographic mesh connectivity, not by bandwidth or compute capacity.
+
+**Conclusion:** Direct hardware measurement confirms that the dominant kernel classes (GEMMs and element-wise operations) are operating deep in the memory-bound region of the roofline, saturating HBM3e bandwidth while leaving Tensor Core capacity largely idle. The 1.1% Tensor Core utilisation figure from TensorBoard is a weighted average reflecting the 29% of GPU time spent in kernels with near-zero Tensor Core usage. Software optimisation cannot resolve this — the arithmetic intensity of the O96 problem size is the fundamental constraint.
+
 ### Summary
 
 Different step-time figures appear across sections because they use different tools and scopes:
@@ -389,12 +440,12 @@ Each action was tested independently against the baseline (batch size 8, eager B
 | *↳ FP8 (Transformer Engine, compiled)* | *8* | *1.00* | *6.32* | *—* | *No meaningful throughput improvement (+0.8%). AMAX CPU contention collapses dataloader throughput 84%. BF16 chosen.* |
 | **Fused AdamW (compiled)** | 8 | 1.03 | 6.18 (−1.4% vs compiled) | N/A | No improvement. Optimizer is not the bottleneck. |
 
-Two remaining cost centres are the most promising targets for further optimisation:
+Two remaining cost centres are worth noting, but with different outlooks:
 
-- **`indexSelectLargeIndex` (~13% of runtime):** Pre-computing and caching graph indices could reduce this without changing model behaviour.
-- **`nvjet_hsh` kernels (~36% of runtime):** Establishing whether these originate from `anemoi-graphs` or a third-party library, and whether more recent versions exist, is worth investigating.
+- **`indexSelectLargeIndex` (~13% of runtime):** Latency/cache-bound due to irregular sparse memory access patterns from Anemoi's geographic mesh connectivity (ncu: Memory SOL 14%, Compute SOL 56%). Pre-computing and caching graph indices could reduce this cost without changing model behaviour.
+- **`nvjet_hsh` kernels (~36% of runtime):** Operating near the ridge point of the roofline (ncu: Memory SOL 65–75%, Compute SOL 80–95%) — already well-optimised. Unlike the GEMM and element-wise kernels, these are not the bottleneck and are not a target for optimisation.
 
-The single-GPU investigation establishes that the workload is hardware-bound at the HBM3 memory-bandwidth ceiling, with no software path to a meaningful throughput improvement at this scale. The **eager BF16, batch size 8** configuration is carried forward as the 1-GPU reference baseline for all single-node multi-GPU experiments — compiled BF16 is reserved for direct comparison within those experiments.
+The single-GPU investigation establishes that the dominant kernel classes are hardware-bound at the HBM3 memory-bandwidth ceiling. The one software-addressable cost centre — `indexSelectLargeIndex` (~13% of runtime), which is latency/cache-bound due to irregular sparse access patterns — could be reduced by pre-computing graph indices, but would not change the fundamental memory-bound character of the workload. The **eager BF16, batch size 8** configuration is carried forward as the 1-GPU reference baseline for all single-node multi-GPU experiments — compiled BF16 is reserved for direct comparison within those experiments.
 
 ## Single Node Multi-GPU Scaling
 
