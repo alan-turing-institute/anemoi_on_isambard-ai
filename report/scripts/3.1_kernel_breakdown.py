@@ -40,11 +40,6 @@ ax.set_title('GPU Kernel Time Breakdown — Compiled BF16, 200 Steps', fontweigh
 ax.set_xlim(0, 45)
 ax.invert_yaxis()
 
-# Annotation for the two targets
-ax.axvline(13, color='#FF8F00', linestyle=':', linewidth=1.2, alpha=0.7)
-ax.text(13.5, 2.5, 'Software-addressable\n(pre-compute indices)',
-        fontsize=10, color='#E65100', va='center')
-
 fig.tight_layout()
 out = '../plots/3.1_kernel_breakdown.png'
 plt.savefig(out, dpi=300, bbox_inches='tight')
