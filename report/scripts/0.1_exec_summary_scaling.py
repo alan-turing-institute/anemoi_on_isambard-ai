@@ -4,61 +4,53 @@ Compact horizontal bar chart for the executive summary section.
 Data source: nsys NVTX step median, rank 0. O96, compiled BF16.
 """
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import numpy as np
+import plotly.graph_objects as go
 
-plt.style.use('seaborn-v0_8-whitegrid')
-plt.rcParams.update({
-    'font.size': 13,
-    'axes.titlesize': 14,
-    'axes.labelsize': 13,
-    'xtick.labelsize': 12,
-    'ytick.labelsize': 12,
-    'legend.fontsize': 11,
-})
+scales     = ['2 nodes (8 GPUs)', '10 nodes (40 GPUs)', '25 nodes (100 GPUs)',
+              '50 nodes (200 GPUs)', '100 nodes (400 GPUs)']
+efficiency = [94.2, 94.6, 90.8, 84.6, 85.6]
 
-scales      = ['2 nodes\n(8 GPUs)', '10 nodes\n(40 GPUs)', '25 nodes\n(100 GPUs)',
-               '50 nodes\n(200 GPUs)', '100 nodes\n(400 GPUs)']
-efficiency  = [94.2, 94.6, 90.8, 84.6, 85.6]
-
-# Color by tier: green ≥ 93%, orange 88–93%, red < 88%
 colors = ['#43A047' if e >= 93 else ('#FB8C00' if e >= 88 else '#E53935')
           for e in efficiency]
 
-fig, ax = plt.subplots(figsize=(8, 4))
+fig = go.Figure()
 
-bars = ax.barh(scales, efficiency, color=colors, height=0.5,
-               edgecolor='white', linewidth=0.8)
+fig.add_trace(go.Bar(
+    y=scales,
+    x=efficiency,
+    orientation='h',
+    marker_color=colors,
+    marker_line_color='white',
+    marker_line_width=1,
+    text=[f'{e}%' for e in efficiency],
+    textposition='outside',
+    hovertemplate='<b>%{y}</b><br>Efficiency: %{x}%<extra></extra>',
+))
 
-# Perfect scaling reference
-ax.axvline(100, color='#9E9E9E', linestyle='--', linewidth=1.3, alpha=0.7,
-           label='Perfect scaling (100%)')
+# Perfect scaling reference line
+fig.add_vline(x=100, line_dash='dash', line_color='#9E9E9E', line_width=1.5,
+              annotation_text='Perfect scaling', annotation_position='top right')
 
-# RING→TREE boundary annotation
-ax.axhline(1.5, color='#C62828', linestyle=':', linewidth=1.2, alpha=0.6)
-ax.text(70.5, 1.55, 'RING_LL → TREE_LL', fontsize=9, color='#C62828', va='bottom')
+# RING→TREE boundary
+fig.add_hline(y=1.5, line_dash='dot', line_color='#C62828', line_width=1.2,
+              annotation_text='RING_LL → TREE_LL', annotation_position='bottom right',
+              annotation_font_color='#C62828')
 
-for bar, eff in zip(bars, efficiency):
-    ax.text(eff + 0.4, bar.get_y() + bar.get_height() / 2,
-            f'{eff}%', va='center', ha='left', fontsize=12, fontweight='bold')
+fig.update_layout(
+    title=dict(text='Multi-Node Scaling Efficiency — O96, Compiled BF16',
+               font_size=16, x=0.5, xanchor='center'),
+    xaxis=dict(title='Scaling efficiency (%)', range=[65, 108]),
+    yaxis=dict(autorange='reversed'),
+    height=350,
+    margin=dict(l=10, r=40, t=60, b=40),
+    plot_bgcolor='white',
+    paper_bgcolor='white',
+    font_size=13,
+    showlegend=False,
+)
+fig.update_xaxes(showgrid=True, gridcolor='#EEEEEE')
+fig.update_yaxes(showgrid=False)
 
-ax.set_xlabel('Scaling efficiency (%)')
-ax.set_title('Multi-Node Scaling Efficiency — O96, Compiled BF16', fontweight='bold')
-ax.set_xlim(65, 105)
-ax.invert_yaxis()
-
-legend_handles = [
-    mpatches.Patch(color='#43A047', label='≥ 93%  (AllReduce fully overlapped)'),
-    mpatches.Patch(color='#FB8C00', label='88–93%  (transitional)'),
-    mpatches.Patch(color='#E53935', label='< 88%  (TREE_LL on critical path)'),
-    plt.Line2D([0], [0], color='#9E9E9E', linestyle='--', linewidth=1.3,
-               label='Perfect scaling'),
-]
-ax.legend(handles=legend_handles, loc='lower right', fontsize=10, framealpha=0.9)
-
-fig.tight_layout()
-out = '../plots/0.1_exec_summary_scaling.png'
-plt.savefig(out, dpi=300, bbox_inches='tight')
-print(f'Saved {out}')
-plt.close()
+fig.write_html('../plots/0.1_exec_summary_scaling.html', include_plotlyjs='cdn')
+fig.write_image('../plots/0.1_exec_summary_scaling.png', width=800, height=350, scale=3)
+print('Saved 0.1_exec_summary_scaling.html + .png')

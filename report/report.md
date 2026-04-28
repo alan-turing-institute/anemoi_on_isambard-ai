@@ -50,7 +50,7 @@ Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85
 For readers focused on improving training throughput or reducing job turnaround time:
 
 - **Single-GPU throughput** — the dominant kernel classes (GEMMs, element-wise operations) are hardware-bound at the HBM3 memory-bandwidth ceiling; no software change can address this without increasing arithmetic intensity. The one actionable cost centre is `indexSelectLargeIndex` (~13% of runtime), which is latency/cache-bound due to irregular sparse access and could be reduced by pre-computing graph indices. `nvjet_hsh` (~36% of runtime) is already near the ridge point and is not a target. Details are in [Optimisation Actions](#optimisation-actions).
-- **Single-node efficiency** — the primary risk is environment contamination (`CUDA_LAUNCH_BLOCKING`). Guidance is in [Action 6: Node-Level Performance Variability](#action-6-node-level-performance-variability). The residual forward-pass overhead at 4 GPUs is characterised in [Action 8: Characterising the Multi-Rank Overhead with NVTX Markers](#action-8-characterising-the-multi-rank-overhead-with-nvtx-markers).
+- **Single-node efficiency** — 96.1% at 4 GPUs relative to 1 GPU; there is limited scope for further improvement. The residual forward-pass overhead is characterised in [Action 8: Characterising the Multi-Rank Overhead with NVTX Markers](#action-8-characterising-the-multi-rank-overhead-with-nvtx-markers).
 - **Multi-node step time** — at 50+ nodes, AllReduce communication saturates the backward window and is on the critical path. Potential levers are discussed in [Action 1: Baseline Multi-Node Training Runs](#action-1-baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
 - **Multi-node startup time** — at 100 nodes startup overhead accounts for ~79 s, dominated by the DDP weight broadcast and NCCL warmup. Targets are documented in [Action 2: Startup Overhead](#action-2-startup-overhead) under *Startup improvement opportunities*.
 
@@ -58,7 +58,7 @@ For readers focused on improving training throughput or reducing job turnaround 
 
 ### `O96` Strong Scaling
 
-Baseline strong scaling experiments were run for the `O96` dataset, training for 2 epochs across node counts of 1, 10, 50, 100, 200, and 500. For each run, two metrics were recorded: `Slurm Total Time` (wall-clock duration from job start to finish, measuring how fast the training completes) and `Total Node Hours` (the product of node count and wall-clock time, measuring total compute consumed — a proxy for cost). Both are plotted below on a log-log scale.
+Initial strong scaling experiments were run for the `O96` dataset, training for 2 epochs across node counts of 1, 10, 50, 100, 200, and 500. For each run, two metrics were recorded: `Slurm Total Time` (wall-clock duration from job start to finish, measuring how fast the training completes) and `Total Node Hours` (the product of node count and wall-clock time, measuring total compute consumed — a proxy for cost). Both are plotted below on a log-log scale.
 
 ![`O96` Strong Scaling Performance](plots/1.1_strong_scaling_plot.png)
 *Figure 1. `O96` Strong Scaling Performance.*
@@ -77,16 +77,16 @@ In addition to the strong scaling analysis, the total job time is decomposed int
 
 ### `N320` Strong Scaling
 
-The `O96` results identified 100 nodes as the wall-clock optimum and setup overhead as the dominant cost beyond it. The `N320` dataset — a significantly higher-resolution workload — tests whether heavier per-step compute shifts this picture. Greater computational intensity per GPU means more useful work per synchronisation step, which should extend the range over which scaling remains efficient.
+The `O96` results identified 100 nodes as the wall-clock minimum and setup overhead as the dominant cost beyond it. The `N320` dataset — a significantly higher-resolution workload — tests whether heavier per-step compute shifts this picture. Greater computational intensity per GPU means more useful work per synchronisation step, which should extend the range over which scaling remains efficient.
 
 The model was trained for 2 epochs across node counts of 1, 2, 8, 10, 25, 50, 100, and 200 nodes. Testing beyond 200 nodes was not performed given resource constraints and the trends already established with `O96`.
 
 ![`N320` Strong Scaling Performance](plots/1.3_n320_strong_scaling_plot.png)
 *Figure 3. `N320` Strong Scaling Performance.*
 
-- Wall-clock time falls steadily from 33,444 s (1 node) to 669 s (100 nodes) — a wider effective scaling range than `O96`. Cost also grows more slowly: total node hours remain relatively stable up to 25 nodes (9.29 h → 13.49 h), unlike `O96` where cost rose steeply from the outset.
+- Wall-clock time falls steadily from 33,444 s (1 node) to 669 s (100 nodes) — a wider effective scaling range than `O96`. `N320`'s ~5× larger grid (~204,800 vs ~40,320 grid points) produces larger GEMM dimensions and higher arithmetic intensity per step, making communication a smaller fraction of total step time and sustaining efficient scaling further. Cost also grows more slowly: total node hours remain relatively stable up to 25 nodes (9.29 h → 13.49 h), unlike `O96` where cost rose steeply from the outset.
 
-- At 200 nodes the wall-clock gain is negligible (669 s → 642 s) while total node hours nearly doubles (18.58 h → 35.67 h), confirming 100 nodes as the practical optimum for `N320` as well.
+- At 200 nodes the wall-clock gain is negligible (669 s → 642 s) while total node hours nearly doubles (18.58 h → 35.67 h), confirming 100 nodes as the potential wall-clock minimum for `N320` as well.
 
 The total job time is again decomposed into training time and setup time to understand the plateau at 200 nodes.
 
@@ -108,7 +108,7 @@ NCCL `All-Reduce` benchmarks were carried out on Isambard-AI across 1, 10, 50, a
 ![NCCL All-Reduce Benchmark Bandwidth](plots/2.1_nccl_benchmark.png)
 *Figure 5. Peak bus bandwidth of NCCL `All-Reduce` as a function of node count. NVLink (1 node) provides 342.5 GB/s; Slingshot bandwidth is stable at 91–93 GB/s from 10 to 50 nodes, dropping ~23% at 200 nodes.*
 
-Bandwidth is stable between 10 and 50 nodes (92.7 → 91.2 GB/s), confirming that the scaling degradation seen in the initial tests is **not** caused by network communication bandwidth. The physical interconnect has headroom to spare; the overhead must originate elsewhere. The following sections investigate it tier by tier, starting from a single GPU.
+Bandwidth is stable between 10 and 50 nodes (92.7 → 91.2 GB/s), confirming that the scaling degradation seen in the initial tests is **not** caused by network bandwidth. The gradient tensor size is fixed by model parameters and does not grow with node count, so the volume of data to synchronise is also not the primary cause. What does grow with node count is the number of participating ranks, which increases `All-Reduce` latency and can affect NCCL algorithm selection and collective coordination overhead. The following sections investigate the source of overhead tier by tier — beginning with single-GPU performance characterisation, then single-node multi-GPU communication overhead, and finally multi-node scaling behaviour.
 
 ## Single GPU
 
@@ -197,14 +197,7 @@ The per-kernel SOL metrics reveal three distinct performance regimes:
 ![ncu Roofline: Memory SOL vs Compute SOL per Kernel Type](plots/3.2_roofline.png)
 *Figure 7. Roofline scatter plot of Memory SOL (x-axis) vs Compute SOL (y-axis) for the dominant kernel types. Kernels in the upper-right are near the ridge point; kernels shifted left are memory-bound. The GH200 ridge point (~495 FLOP/Byte) separates the memory-bound and compute-bound regions.*
 
-| Kernel type | Memory SOL | Compute SOL | Regime |
-| :--- | :--- | :--- | :--- |
-| CUTLASS GEMM (linear projections) | **88–96%** | 30–36% | Memory-bound |
-| Element-wise kernels (add, mul, copy) | **90–93%** | 13–29% | Memory-bound |
-| Layer norm backward | **90%** | 53% | Memory-bound |
-| `nvjet_hsh` (graph message-passing) | 65–75% | **80–95%** | Near ridge point |
-| FlashAttention (`flash_fwd/bwd_kernel`) | 65–75% | **80–95%** | Near ridge point |
-| `indexFuncLargeIndex` (sparse routing) | 14% | 56% | Latency/cache-bound |
+See [ncu Speed-of-Light values per kernel](#ncu-speed-of-light-values-per-kernel) in Supplementary Material for the numerical breakdown.
 
 **GEMM kernels are memory-bound.** Linear projections — which should saturate Tensor Cores on large matrices — are instead bottlenecked by HBM3e bandwidth. This is the direct hardware confirmation of low Tensor Core utilisation observed via TensorBoard. O96's matrix dimensions are determined by the number of grid points (~40,320) and the batch size; the resulting arithmetic intensity falls well below GH200's ridge point of ~495 FLOP/Byte, placing every GEMM in the memory-bound region of the roofline.
 
@@ -233,13 +226,7 @@ Each action was tested independently against the baseline (batch size 8, eager B
 ![Single GPU Optimisation Actions: Throughput Comparison](plots/3.3_single_gpu_actions.png)
 *Figure 8. Training throughput (samples/s) for each optimisation action versus baseline. All actions fail to improve throughput, confirming the bottleneck is HBM3e memory bandwidth rather than any software inefficiency.*
 
-| Configuration | Batch | Avg Batch Time (s) | Throughput (samples/s) | Peak Memory | Notes |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Baseline (eager, BF16)** | 8 | 0.97 | 7.93 | 34.1 GB (36%) | 625k kernel launches; 91% CUDA API time in sync stalls. |
-| **Batch size 16** | 16 | 1.91 | 7.79 (−1.8%) | ~68 GB (72%) | Step time doubles (2× data). No throughput gain → bottleneck is not data supply. |
-| **`torch.compile(model.model)`** | 8 | 1.026† | 6.27 (−23.9%\*) | 30.7 GB | No throughput benefit (avg batch time +7.5%; recompilation adds further drag over short runs). Operator fusion visible; 10% memory reduction. \*Includes recompilation overhead. †Different profiler run; see step-time table. |
-| *↳ FP8 (Transformer Engine, compiled)* | *8* | *1.00* | *6.32* | *—* | *No meaningful throughput improvement (+0.8%). AMAX CPU contention collapses dataloader throughput 84%. BF16 chosen.* |
-| **Fused AdamW (compiled)** | 8 | 1.03 | 6.18 (−1.4% vs compiled) | N/A | No improvement. Optimizer is not the bottleneck. |
+See [Single GPU Optimisation Actions: Full Results](#single-gpu-optimisation-actions-full-results) in Supplementary Material for per-action timing and memory figures.
 
 Two remaining cost centres are worth noting, but with different outlooks:
 
@@ -372,15 +359,7 @@ where $T_{\text{1-GPU}}$ is the median step time on 1 GPU and $T_{N\text{-GPU}}$
 ![Multi-Node Step Time Phase Breakdown](plots/4.2_step_breakdown.png)
 *Figure 10. Median step time decomposed into backward, forward (derived), and optimizer phases by node count. Backward is relatively stable; the forward residual grows sharply at 50 nodes, consistent with the DDP buffer broadcast scaling over Slingshot.*
 
-| Scale | Step Med (ms) | Scaling efficiency | Step overhead vs 1-GPU (ms) | Overhead per node (ms) |
-| :--- | ---: | ---: | ---: | ---: |
-| 1-GPU | 977.0 | 100% | 0 | — |
-| 4-GPU (1 node) | 1016.8 | 96.1% | +39.7 | 39.7 |
-| 8-GPU (2 nodes) | 1037.1 | 94.2% | +60.1 | 30.0 |
-| 40-GPU (10 nodes) | 1032.7 | 94.6% | +55.7 | 5.6 |
-| 100-GPU (25 nodes) | 1076.5 | 90.8% | +99.5 | 4.0 |
-| 200-GPU (50 nodes) | 1154.8 | 84.6% | +177.7 | 3.6 |
-| 400-GPU (100 nodes) | 1141.3 | 85.6% | +164.3 | 1.6 |
+See [Per-Step Scaling Summary](#per-step-scaling-summary) in Supplementary Material for the numerical breakdown.
 
 Full per-step timing statistics (backward/forward/optimizer med/min/max/stddev) are in [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail).
 
@@ -399,14 +378,7 @@ To identify how much time is taken by NCCL communication and whether it is on th
 ![NCCL AllReduce Saturation vs Backward Window](plots/4.3_nccl_allreduce.png)
 *Figure 11. NCCL AllReduce kernel time (RING_LL + TREE_LL) as a fraction of the backward NVTX window at each scale. Saturation remains below 50% up to 25 nodes (AllReduce fully overlapped), jumps to 83% at 50 nodes when NCCL switches to TREE_LL, then eases to 70% at 100 nodes.*
 
-| Case | RING_LL (ms/step) | TREE_LL (ms/step) | Total (ms/step) | Backward window | Saturation |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| 1 node | 42.6 | — | 42.6 | 734.9 | 6% |
-| 2 nodes | 129.2 | 16.4 | 145.6 | 744.2 | 20% |
-| 10 nodes | 287.8 | 41.7 | 329.6 | 737.2 | 45% |
-| 25 nodes | 317.3 | 59.8 | 377.1 | 764.9 | 49% |
-| 50 nodes | 5.5 | 615.2 | 620.7 | 748.2 | 83% |
-| 100 nodes | 15.1 | 503.8 | 518.9 | 738.4 | 70% |
+See [NCCL AllReduce Kernel Time per Scale](#nccl-allreduce-kernel-time-per-scale) in Supplementary Material for the numerical breakdown.
 
 Total f32 AllReduce GPU kernel time per step grows 42.6 ms (1 node) → 145.6 ms (2 nodes) → 329.6 ms (10 nodes), yet the backward NVTX wall time at 10 nodes is only 737 ms (45% saturation) — the `All-Reduce` runs concurrently with compute and is not on the critical path.
 
