@@ -23,7 +23,7 @@ kernels = [
     'FlashAttention\n(fwd + bwd)',
     'Graph message-passing\n(nvjet_hsh)',
 ]
-shares = [29, 1, 13, 21, 36]
+shares = [31, 1, 13, 19, 36]
 colors = ['#90A4AE', '#B0BEC5', '#FF8F00', '#42A5F5', '#7B1FA2']
 
 fig, ax = plt.subplots(figsize=(10, 5))

@@ -26,7 +26,6 @@ kernels = [
     (91.5, 21.0,  1.5,  8.0, 'Element-wise\n(add, mul, copy)',          'memory'),
     (90.0, 53.0,  0.0,  0.0, 'Layer norm\nbackward',                    'memory'),
     (70.0, 87.5,  5.0,  7.5, 'nvjet_hsh\n(graph message-passing)',      'ridge'),
-    (70.0, 87.5,  5.0,  7.5, 'FlashAttention\n(fwd/bwd)',               'ridge'),
     (14.0, 56.0,  0.0,  0.0, 'indexFuncLargeIndex\n(sparse routing)',   'latency'),
 ]
 
@@ -54,7 +53,7 @@ diag = np.linspace(0, 100, 200)
 ax.plot(diag, diag, 'k--', linewidth=1.2, alpha=0.4, label='Memory SOL = Compute SOL')
 
 # Region labels
-ax.text(82, 18, 'Memory-bound\n(Memory SOL >> Compute SOL)',
+ax.text(60, 26, 'Memory-bound\n(Memory SOL >> Compute SOL)',
         fontsize=10, color='#C62828', ha='center', style='italic', alpha=0.8)
 ax.text(18, 82, 'Compute-bound\n(Compute SOL >> Memory SOL)',
         fontsize=10, color='#2E7D32', ha='center', style='italic', alpha=0.8)
@@ -62,7 +61,6 @@ ax.text(18, 82, 'Compute-bound\n(Compute SOL >> Memory SOL)',
 # Offset identical nvjet/FlashAttention points slightly for readability
 offsets = {
     'nvjet_hsh\n(graph message-passing)':  (-6, 2),
-    'FlashAttention\n(fwd/bwd)':           ( 6, -2),
 }
 
 plotted_regimes = set()
@@ -76,15 +74,19 @@ for mem, comp, mem_err, comp_err, label, regime in kernels:
                 markersize=12, capsize=4, linewidth=1.5,
                 label=regime if regime not in plotted_regimes else None)
     plotted_regimes.add(regime)
+    left_labels = {'nvjet_hsh\n(graph message-passing)'}
+    xt = -8 if (regime == 'memory' or label in left_labels) else 8
     ax.annotate(label, (x, y),
-                textcoords='offset points', xytext=(8, 4),
+                textcoords='offset points',
+                xytext=(xt, 14),
+                ha='right' if (regime == 'memory' or label in left_labels) else 'left',
                 fontsize=9, color=colors[regime])
 
 ax.set_xlabel('Memory Throughput SOL (%)')
 ax.set_ylabel('Compute (SM) Throughput SOL (%)')
 ax.set_title('ncu Speed-of-Light: Per-Kernel Performance Regime\n(GH200 O96, eager BF16)', fontweight='bold')
-ax.set_xlim(0, 105)
-ax.set_ylim(0, 105)
+ax.set_xlim(0, 100)
+ax.set_ylim(0, 100)
 
 legend_elements = [
     mpatches.Patch(color=colors['memory'],  label='Memory-bound'),
@@ -93,7 +95,7 @@ legend_elements = [
     plt.Line2D([0], [0], color='k', linestyle='--', linewidth=1.2, alpha=0.5,
                label='Memory SOL = Compute SOL'),
 ]
-ax.legend(handles=legend_elements, loc='lower right', framealpha=0.9)
+ax.legend(handles=legend_elements, loc='lower right', framealpha=0.9, bbox_to_anchor=(0.78, 0.02))
 
 fig.tight_layout()
 out = '../plots/3.2_roofline.png'

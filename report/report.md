@@ -20,9 +20,9 @@ Anemoi training on Isambard-AI GH200 nodes was characterised across three tiers:
 
 ### Single GPU
 
-The `O96` model on a single GH200 achieves ~0.97 s/step (7.93 samples/s) in eager mode. Profiling establishes that the workload is **memory-bandwidth bound**: GPU utilisation is 92.8%, but Tensor Core utilisation is only ~1.2% and Model FLOP Utilisation is ~20% of the GH200 dense BF16 peak. Direct hardware measurement with `ncu` confirms this: CUTLASS GEMM kernels reach 88–96% of peak HBM3e bandwidth but only 30–36% of peak compute throughput, placing them deep in the memory-bound region of the roofline. The GPU is continuously busy, but the dominant kernels do not have sufficient arithmetic intensity to exploit Tensor Cores.
+The `O96` model on a single GH200 achieves ~0.97 s/step (7.93 samples/s) in eager mode. Profiling establishes that the workload is **memory-bandwidth bound**: GPU utilisation is 92.8%, but Tensor Core utilisation is only ~1.1% and Model FLOP Utilisation is ~20% of the GH200 dense BF16 peak. Direct hardware measurement with `ncu` confirms this: CUTLASS GEMM kernels reach 88–96% of peak HBM3e bandwidth but only 30–36% of peak compute throughput, placing them deep in the memory-bound region of the roofline. The GPU is continuously busy, but the dominant kernels do not have sufficient arithmetic intensity to exploit Tensor Cores.
 
-The main software bottleneck identified was CPU dispatch overhead: ~3,130 kernel launches per step with frequent `aten::nonzero` synchronisation stalls. `torch.compile` fused over 50,000 element-wise operations via Triton and removed all `cudaStreamSynchronize` stalls, but did not produce a measurable throughput improvement — the workload is memory-bandwidth bound and kernel fusion alone cannot change that. The hardware ceiling is HBM3 memory bandwidth, which is a characteristic of the model's arithmetic intensity and cannot be removed without architectural changes.
+The main software bottleneck identified was CPU dispatch overhead: ~3,130 kernel launches per step with frequent `cudaStreamSynchronize` blocking calls. `torch.compile` reduced kernel launches by 31% via Triton operator fusion and eliminated all `cudaStreamSynchronize` stalls, but did not produce a measurable throughput improvement — the workload is memory-bandwidth bound and kernel fusion alone cannot change that. The hardware ceiling is HBM3e memory bandwidth, which is a characteristic of the model's arithmetic intensity and cannot be removed without architectural changes.
 
 Activation checkpointing (`num_chunks: 2`) is required to fit within 96 GB HBM3e (34.1 GB peak vs 95.1 GB theoretical). Disabling it does not change step time, confirming the bottleneck is not recompute overhead.
 
@@ -49,7 +49,7 @@ Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85
 
 For readers focused on improving training throughput or reducing job turnaround time:
 
-- **Single-GPU throughput** — the dominant kernel classes (GEMMs, element-wise operations) are hardware-bound at the HBM3 memory-bandwidth ceiling; no software change can address this without increasing arithmetic intensity. The one actionable cost centre is `indexSelectLargeIndex` (~13% of runtime), which is latency/cache-bound due to irregular sparse access and could be reduced by pre-computing graph indices. `nvjet_hsh` (~36% of runtime) is already near the ridge point and is not a target. Details are in [Optimisation Actions](#optimisation-actions).
+- **Single-GPU throughput** — the dominant kernel classes (GEMMs, element-wise operations) are hardware-bound at the HBM3e memory-bandwidth ceiling; no software change can address this without increasing arithmetic intensity. The one actionable cost centre is sparse routing (`indexSelectLargeIndex` + `indexFuncLargeIndex`, ~13% of runtime), which is latency/cache-bound due to irregular sparse access and could be reduced by pre-computing graph indices. `nvjet_hsh` (~36% of runtime) is already near the ridge point and is not a target. Details are in [Optimisation Actions](#optimisation-actions).
 - **Single-node efficiency** — 96.1% at 4 GPUs relative to 1 GPU; there is limited scope for further improvement. The residual forward-pass overhead is characterised in [Action 8: Characterising the Multi-Rank Overhead with NVTX Markers](#action-8-characterising-the-multi-rank-overhead-with-nvtx-markers).
 - **Multi-node step time** — at 50+ nodes, AllReduce communication saturates the backward window and is on the critical path. Potential levers are discussed in [Action 1: Baseline Multi-Node Training Runs](#action-1-baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
 - **Multi-node startup time** — at 100 nodes startup overhead accounts for ~79 s, dominated by the DDP weight broadcast and NCCL warmup. Targets are documented in [Action 2: Startup Overhead](#action-2-startup-overhead) under *Startup improvement opportunities*.
@@ -122,7 +122,7 @@ Five profiling tools were used in sequence to characterise performance, each ans
 | **`nsys` (Nsight Systems)** [14] | CPU–GPU timeline, CUDA API time, kernel launch counts, kernel time by type | Is the GPU busy, and what does the kernel structure look like? |
 | **`ncu` (Nsight Compute)** [13] | Per-kernel memory and compute throughput as % of hardware peak (Speed-of-Light) | Are kernels actually memory-bound or compute-bound at the hardware level? |
 
-Together they form a funnel — from throughput at the top down to direct hardware measurement. The first three tools establish the baseline and evaluate optimisation actions; `nsys` and `ncu` then provide deeper CPU–GPU timeline and hardware-level roofline analysis, confirming the workload is memory-bandwidth bound.
+Together they form a funnel — from throughput at the top down to direct hardware measurement. The first three tools establish the baseline and evaluate optimisation actions; `nsys` is used alongside `torch.compile` to track structural CPU–GPU changes, and then with `ncu` provides hardware-level roofline analysis confirming the workload is memory-bandwidth bound.
 
 ### Baseline Characterisation
 
@@ -143,7 +143,7 @@ The detailed profiler reports the following model characteristics:
 | **Model Size** | 231 M params (462 MB) | Small by parameter count |
 | **Compute Load** | 23.42 TMACs / 46.84 TFLOPs per forward pass | High compute density relative to model size |
 | **Theoretical Activation Memory** | 95.1 GB | Estimated peak activation volume (pre-checkpointing); exceeds usable HBM3e, motivating `num_chunks` checkpointing |
-| **Measured Peak Memory** | 34.1 GB (with `num_chunks: 2`) | 61 GB without checkpointing |
+| **Measured Peak Memory** | 34.1 GB (with `num_chunks: 2`) | 61 GB with `num_chunks: 1` (still checkpointed, but all chunks recomputed together) |
 | **Architecture** | Graph Transformer | Encoder-Processor-Decoder |
 | **Scale** | 322k input / 87k latent nodes | Large input graph drives high activation volume |
 
@@ -157,7 +157,7 @@ At an avg batch time of 0.97 s (simple profile), this yields **~193 TFLOP/s** �
 
 ### Optimisation Actions
 
-The baseline identified three concrete observations: (1) ~60 GB of unused VRAM, (2) heavy element-wise kernel fragmentation with CPU–GPU synchronisation stalls, and (3) only ~1.1% Tensor Core utilisation. Four software actions target these observations independently (they are not stacked). `nsys` is used alongside Action 3 to verify what `torch.compile` changed structurally; `ncu` roofline profiling is run last on the compiled baseline to narrow the hardware-level investigation to the most relevant configuration.
+The baseline identified three concrete observations: (1) ~60 GB of unused VRAM, (2) heavy element-wise kernel fragmentation with CPU–GPU synchronisation stalls, and (3) only ~1.1% Tensor Core utilisation. Four software actions target these observations independently, plus a targeted test of fused AdamW (they are not stacked). `nsys` is used alongside Action 3 to verify what `torch.compile` changed structurally; `ncu` roofline profiling is run last on the compiled baseline to narrow the hardware-level investigation to the most relevant configuration.
 
 | Action | Change | Hypothesis |
 | :--- | :--- | :--- |
@@ -168,25 +168,25 @@ The baseline identified three concrete observations: (1) ~60 GB of unused VRAM, 
 
 - **Action 1 — Batch Size 16:** ❌ No throughput gain (−1.8%, simple profiler). Step time doubled with 2× data; peak memory doubled to ~72% of HBM3e. The bottleneck is not data supply.
 - **Action 2 — DataLoader Workers (16/32):** ❌ No effect (<3% spread across 8, 16, 32 workers, within noise). Data loading is not the bottleneck.
-- **Action 3 — torch.compile:** ❌ No throughput benefit (avg batch time +7.5% over 200 steps, including recompilation overhead). Operator fusion reduced kernel launches by 31% and peak memory by 10% (34.2 → 30.7 GB). Tensor Core utilisation remained ~1.2% — the memory-bandwidth bound character of the workload is unchanged by fusion.
-- **Action 4 — FP8 Precision:** ❌ No meaningful throughput improvement (+0.8%). FP8 offers no advantage when the bottleneck is HBM3 bandwidth, not arithmetic throughput. AMAX scaling adds CPU contention. BF16 is recommended.
+- **Action 3 — torch.compile:** ❌ No throughput benefit (avg batch time +7.5% over 200 steps, including recompilation overhead). Operator fusion reduced kernel launches by 31% and peak memory by 10% (34.2 → 30.7 GB). Tensor Core utilisation remained ~1.1% (baseline) / ~1.2% (compiled, different profiler run) — the memory-bandwidth bound character of the workload is unchanged by fusion.
+- **Action 4 — FP8 Precision:** ❌ No meaningful improvement in avg batch time (+0.8% over 200 steps). End-to-end throughput regresses (~20%) due to AMAX scaling overhead adding CPU contention. FP8 offers no advantage when the bottleneck is HBM3e bandwidth, not arithmetic throughput. BF16 is recommended.
 
 Detailed data tables for each action are in [Supplementary Material: Single GPU Profiling Detail](#supplementary-material-single-gpu-profiling-detail).
 
 ### `nsys` Deep-Dive
 
-NVIDIA Nsight Systems (`nsys`) [12] is a system-level profiler that records a timeline of CPU and GPU activity — API calls, kernel launches, and memory transfers — allowing CPU–GPU interaction patterns to be inspected directly. `nsys` profiling at three stages of optimisation (baseline eager, compiled, compiled with further changes) tracks how this interaction changes and confirms that removing software inefficiencies does not shift the hardware ceiling.
+NVIDIA Nsight Systems (`nsys`) [14] is a system-level profiler that records a timeline of CPU and GPU activity — API calls, kernel launches, and memory transfers — allowing CPU–GPU interaction patterns to be inspected directly. `nsys` profiling at three stages of optimisation (baseline eager, compiled, compiled with further changes) tracks how this interaction changes and confirms that removing software inefficiencies does not shift the hardware ceiling.
 
 At baseline, 625,957 CUDA kernel launches (~3,130/step) generated heavy CPU–GPU synchronisation: `cudaStreamSynchronize` — a blocking call where the CPU waits for the GPU to finish queued work — accounted for 91.0% of CUDA API time (152.9 s total, 20,982 calls over 200 steps). Despite this, GPU utilisation remained 92.81%, indicating the GPU had sufficient work queued to stay busy between sync points. After `torch.compile`, `cudaStreamSynchronize` dropped to 0.1% of CUDA API time (0.13 s, 21,011 calls) — stalls were effectively eliminated, confirmed directly by the compiled nsys profile. Kernel launches fell by 31% to ~429,000, and Triton kernels appeared in the compiled profile, confirming operator fusion. As a side effect, device-to-device memory movement increased ~2.7× (398 GB → 1,087 GB), reflecting Triton workspace buffers. Despite these structural changes, throughput did not improve.
 
 With CPU-side stalls eliminated, the remaining GPU kernel time for 200 steps breaks down as:
 
 ![GPU Kernel Time Breakdown](plots/3.1_kernel_breakdown.png)
-*Figure 6. GPU kernel time breakdown by type (200 steps, compiled BF16, rank 0). `nvjet_hsh` dominates at ~36%; FlashAttention contributes ~21%; sparse routing (`indexSelectLargeIndex`) accounts for ~13%.*
+*Figure 6. GPU kernel time breakdown by type (200 steps, compiled BF16, rank 0). `nvjet_hsh` dominates at ~36%; FlashAttention contributes ~19%; sparse routing (`indexSelectLargeIndex` + `indexFuncLargeIndex`) accounts for ~13%.*
 
 Sparse routing (`indexSelectLargeIndex`, 13%) warrants further investigation: edge indices appear to be re-expanded and re-sorted every forward pass despite being deterministic under fixed batch size and sharding, suggesting potential for caching. `flash_fwd_kernel` is called 2× more often than `flash_bwd_kernel`, confirming activation checkpointing is active. Fused AdamW showed no improvement (+0.2% avg batch time) — the optimizer update is not a meaningful cost centre.
 
-**Conclusion:** `torch.compile` eliminated all `cudaStreamSynchronize` stalls and reduced kernel launches by 31%. However, since the GPU was already memory-bandwidth bound at baseline, removing the CPU-side stalls did not improve throughput. The hardware ceiling is HBM3 memory bandwidth. Compiled BF16 is used as the starting point for multi-node scaling experiments.
+**Conclusion:** `torch.compile` eliminated all `cudaStreamSynchronize` stalls and reduced kernel launches by 31%. However, since the GPU was already memory-bandwidth bound at baseline, removing the CPU-side stalls did not improve throughput. The hardware ceiling is HBM3e memory bandwidth. Compiled BF16 is used as the starting point for multi-node scaling experiments.
 
 ### `ncu` Hardware Measurement
 
@@ -195,17 +195,17 @@ Sparse routing (`indexSelectLargeIndex`, 13%) warrants further investigation: ed
 The per-kernel SOL metrics reveal three distinct performance regimes:
 
 ![`ncu` Roofline: Memory SOL vs Compute SOL per Kernel Type](plots/3.2_roofline.png)
-*Figure 7. Roofline scatter plot of Memory SOL (x-axis) vs Compute SOL (y-axis) for the dominant kernel types. Kernels in the upper-right are near the ridge point; kernels shifted left are memory-bound. The GH200 ridge point (~247 FLOP/Byte, dense BF16) separates the memory-bound and compute-bound regions.*
+*Figure 7. Roofline scatter plot of Memory SOL (x-axis) vs Compute SOL (y-axis) for the dominant kernel types. Points are the mean SOL across 500 captured kernels; error bars show the observed min–max range. Kernels in the upper-right are near the ridge point; kernels shifted left are memory-bound. The GH200 ridge point (~247 FLOP/Byte, dense BF16) separates the memory-bound and compute-bound regions.*
 
 See [`ncu` Speed-of-Light values per kernel](#`ncu`-speed-of-light-values-per-kernel) in Supplementary Material for the numerical breakdown.
 
-**GEMM kernels are memory-bound.** Linear projections — which should saturate Tensor Cores on large matrices — are instead bottlenecked by HBM3e bandwidth. This is the direct hardware confirmation of low Tensor Core utilisation observed via TensorBoard. O96's matrix dimensions are determined by the number of grid points (~40,320) and the batch size; the resulting arithmetic intensity falls well below GH200's ridge point of ~495 FLOP/Byte, placing every GEMM in the memory-bound region of the roofline.
+**GEMM kernels are memory-bound.** Linear projections — which should saturate Tensor Cores on large matrices — are instead bottlenecked by HBM3e bandwidth. This is the direct hardware confirmation of low Tensor Core utilisation observed via TensorBoard. O96's matrix dimensions are determined by the number of grid points (~40,320) and the batch size; the resulting arithmetic intensity falls well below GH200's dense BF16 ridge point of ~247 FLOP/Byte, placing every GEMM in the memory-bound region of the roofline.
 
-**`nvjet_hsh` and FlashAttention are near the ridge point.** Both memory and compute SOL are high simultaneously, meaning these kernels are well-optimised and are not the limiting bottleneck. FlashAttention [11] achieves high arithmetic intensity by tiling the key/value matrices in SRAM, avoiding repeated HBM reads.
+**`nvjet_hsh` is near the ridge point.** Both memory and compute SOL are high simultaneously, meaning these cuDNN kernels (graph message-passing) are well-optimised and are not the limiting bottleneck. FlashAttention [11] (`flash_fwd_kernel`, `flash_bwd_*`) accounts for ~19% of GPU kernel time (nsys) but was not captured within the 500-kernel ncu window; based on its tiled SRAM design — avoiding repeated HBM reads for keys and values — it is expected to be near the ridge point, consistent with the `nvjet_hsh` measurements.
 
 **Sparse routing is latency-bound.** `indexFuncLargeIndex` shows low SOL on both axes — it is bottlenecked by irregular memory access patterns from Anemoi's geographic mesh connectivity, not by bandwidth or compute capacity.
 
-**Conclusion:** Direct hardware measurement confirms that the dominant kernel classes (GEMMs and element-wise operations) are operating deep in the memory-bound region of the roofline, saturating HBM3e bandwidth while leaving Tensor Core capacity largely idle. The 1.1% Tensor Core utilisation figure from TensorBoard is a weighted average reflecting the 29% of GPU time spent in kernels with near-zero Tensor Core usage. Software optimisation cannot resolve this — the arithmetic intensity of the O96 problem size is the fundamental constraint.
+**Conclusion:** Direct hardware measurement confirms that the dominant kernel classes (GEMMs and element-wise operations) are operating deep in the memory-bound region of the roofline, saturating HBM3e bandwidth while leaving Tensor Core capacity largely idle. The ~1.1% Tensor Core utilisation figure from TensorBoard reflects the substantial fraction of GPU time spent in element-wise and norm kernels with near-zero Tensor Core usage (31% in the compiled profile; the eager baseline has a similar split). Software optimisation cannot resolve this — the arithmetic intensity of the O96 problem size is the fundamental constraint.
 
 ### Summary
 
@@ -213,7 +213,7 @@ Different step-time figures appear across sections because they use different to
 
 | Step time | Source | Steps | What it includes |
 | :--- | :--- | ---: | :--- |
-| ~0.77 s | `nsys` GPU kernel time | 200 | CUDA kernel execution only |
+| ~0.77 s | `nsys` GPU kernel time | 200 | CUDA kernel execution only (total GPU kernel time ÷ 200 steps; excludes CPU overhead and inter-step gaps) |
 | 0.97 s | Anemoi simple profiler (`run_training_batch`) | 40 | Forward + backward + optimizer; excludes inter-step overhead |
 | 0.98 s | Anemoi simple profiler | 200 | Same scope; slight run-to-run variance |
 | ~0.96 s | Anemoi simple profiler | 200 | Consistent across nodes; used as the single-node reference |
@@ -221,19 +221,19 @@ Different step-time figures appear across sections because they use different to
 
 All throughput and scaling comparisons use the simple profiler (`run_training_batch`) unless explicitly stated otherwise.
 
-Each action was tested independently against the baseline (batch size 8, eager BF16); they are not stacked:
+Each action was tested independently against the baseline (batch size 8, eager BF16):
 
 ![Single GPU Optimisation Actions: Throughput Comparison](plots/3.3_single_gpu_actions.png)
 *Figure 8. Training throughput (samples/s) for each optimisation action versus baseline. All actions fail to improve throughput, confirming the bottleneck is HBM3e memory bandwidth rather than any software inefficiency.*
 
 See [Single GPU Optimisation Actions: Full Results](#single-gpu-optimisation-actions-full-results) in Supplementary Material for per-action timing and memory figures.
 
-Two remaining cost centres are worth noting, but with different outlooks:
+Two remaining cost centres are worth noting:
 
-- **`indexSelectLargeIndex` (~13% of runtime):** Latency/cache-bound due to irregular sparse memory access patterns from Anemoi's geographic mesh connectivity (`ncu`: Memory SOL 14%, Compute SOL 56%). Pre-computing and caching graph indices could reduce this cost without changing model behaviour.
-- **`nvjet_hsh` kernels (~36% of runtime):** Operating near the ridge point of the roofline (`ncu`: Memory SOL 65–75%, Compute SOL 80–95%) — already well-optimised. Unlike the GEMM and element-wise kernels, these are not the bottleneck and are not a target for optimisation.
+- **Sparse routing (~13% of runtime):** Latency/cache-bound (`ncu`: Memory SOL 14%, Compute SOL 56%) due to irregular sparse memory access patterns. Pre-computing graph indices could reduce this cost without changing model behaviour.
+- **`nvjet_hsh` kernels (~36% of runtime):** Near the ridge point (`ncu`: Memory SOL 65–75%, Compute SOL 80–95%) — well-optimised and not a target for intervention.
 
-The single-GPU investigation establishes that the dominant kernel classes are hardware-bound at the HBM3 memory-bandwidth ceiling. The one software-addressable cost centre — `indexSelectLargeIndex` (~13% of runtime), which is latency/cache-bound due to irregular sparse access patterns — could be reduced by pre-computing graph indices, but would not change the fundamental memory-bound character of the workload. The **eager BF16, batch size 8** configuration is carried forward as the 1-GPU reference baseline for all single-node multi-GPU experiments — compiled BF16 is reserved for direct comparison within those experiments.
+The single-GPU investigation establishes that the dominant kernel classes are hardware-bound at the HBM3e memory-bandwidth ceiling. The **eager BF16, batch size 8** configuration is carried forward as the 1-GPU reference baseline for all multi-GPU experiments — compiled BF16 is reserved for direct comparison within those experiments.
 
 ## Single Node Multi-GPU Scaling
 
