@@ -219,19 +219,7 @@ Different step-time figures appear across sections because they use different to
 | ~0.96 s | Anemoi simple profiler | 200 | Consistent across nodes; used as the single-node reference |
 | 0.954–0.987 s | Anemoi simple profiler (NVTX runs) | 200 | Node-specific; used in single-node DDP experiments |
 
-All throughput and scaling comparisons use the simple profiler (`run_training_batch`) unless explicitly stated otherwise.
-
-Each action was tested independently against the baseline (batch size 8, eager BF16):
-
-![Single GPU Optimisation Actions: Throughput Comparison](plots/3.3_single_gpu_actions.png)
-*Figure 8. Training throughput (samples/s) for each optimisation action versus baseline. All actions fail to improve throughput, confirming the bottleneck is HBM3e memory bandwidth rather than any software inefficiency.*
-
-See [Single GPU Optimisation Actions: Full Results](#single-gpu-optimisation-actions-full-results) in Supplementary Material for per-action timing and memory figures.
-
-Two remaining cost centres are worth noting:
-
-- **Sparse routing (~13% of runtime):** Latency/cache-bound (`ncu`: Memory SOL 14%, Compute SOL 56%) due to irregular sparse memory access patterns. Pre-computing graph indices could reduce this cost without changing model behaviour.
-- **`nvjet_hsh` kernels (~36% of runtime):** Near the ridge point (`ncu`: Memory SOL 65–75%, Compute SOL 80–95%) — well-optimised and not a target for intervention.
+All throughput and scaling comparisons use the simple profiler (`run_training_batch`) unless explicitly stated otherwise. Full per-action timing and memory figures are in [Supplementary Material: Single GPU Profiling Detail](#supplementary-material-single-gpu-profiling-detail).
 
 The single-GPU investigation establishes that the dominant kernel classes are hardware-bound at the HBM3e memory-bandwidth ceiling. The **eager BF16, batch size 8** configuration is carried forward as the 1-GPU reference baseline for all multi-GPU experiments — compiled BF16 is reserved for direct comparison within those experiments.
 
