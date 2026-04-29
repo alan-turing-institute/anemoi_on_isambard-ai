@@ -229,7 +229,7 @@ Each Isambard-AI node hosts **4 GH200 GPUs** connected via NVLink. Moving from 1
 
 **Intra-node scaling result.** On a correctly configured node, 4-GPU scaling efficiency is **95.7%** — approximately 1,031 ms/step at 4 GPUs vs 987 ms/step at 1 GPU, a 44 ms (4.3%) overhead. This is within the expected range for a graph model communicating over NVLink.
 
-**Background.** Early single node/4-GPU runs showed **76.5% efficiency** (step times ranging from ~1,185 ms to ~1,234 ms across different nodes and profiling configurations). `CUDA_LAUNCH_BLOCKING=1` was present in the SLURM job environment — carried over from a prior session — but was not recognised as the cause, triggering a seven-action investigation before the root cause was found. The key lesson: **verify the job environment before beginning any performance investigation**. A misconfigured environment variable invalidated the initial baseline and drove a substantial profiling campaign that could have been avoided.
+**Background.** Early single node/4-GPU runs showed **76.5% efficiency** (step times ranging from ~1,185 ms to ~1,234 ms across different nodes and profiling configurations). `CUDA_LAUNCH_BLOCKING=1` was present in the SLURM job environment — carried over from a prior debugging session — but was not recognised as the cause, triggering a seven-action investigation before the root cause was found. The key lesson: **verify the job environment before beginning any performance investigation**. A misconfigured environment variable invalidated the initial baseline and drove a substantial profiling campaign that could have been avoided.
 
 `CUDA_LAUNCH_BLOCKING=1` forces every CUDA kernel launch to be synchronous, turning ~11 µs async dispatches into blocking waits. With ~625,000 kernel launches over 200 steps (~3,130 per step), the cumulative cost is ~220 ms. PyTorch DDP [12] amplifies the effect further through additional `cudaStreamSynchronize` calls for NCCL bucket coordination.
 
@@ -329,15 +329,13 @@ With single-GPU and single-node behaviour established, this section characterise
 
 **Goal:** Establish baseline step time and startup time at 2, 10, and 50 nodes to quantify the scaling efficiency and startup overhead growth beyond 1 node.
 
-`CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` were explicitly unset before these runs, establishing a clean multi-node baseline free from the environment issue identified in the single-node section.
-
-For the 1-GPU, 1 node, 2 nodes, and 10 nodes, 200 steps of the simple profiler with NVTX markers and ``nsys` profile` capture were used, whereas due to dataset size, the number of steps for the 50-node and 100-node runs had to be reduced to 40 and 24 respectively. Since 24–40 steps is still sufficient to get a stable median step time, this should not affect the validity of the scaling efficiency calculation, especially when comparing median times across runs.
+For the 1-GPU, 1 node, 2 nodes, and 10 nodes, 200 steps of the simple profiler with NVTX markers and `nsys profile` capture were used, whereas due to dataset size, the number of steps for the 50-node and 100-node runs had to be reduced to 40 and 24 respectively. Since 24–40 steps is still sufficient to get a stable median step time, this should not affect the validity of the scaling efficiency calculation, especially when comparing median times across runs.
 
 Scaling efficiency is calculated as:
 
-$$\text{Scaling Efficiency} = \frac{T_{\text{1-GPU}}}{T_{N\text{-GPU}}} \times 100\%$$
+> **Scaling Efficiency** = T(1-GPU) / T(N-GPU) × 100%
 
-where $T_{\text{1-GPU}}$ is the median step time on 1 GPU and $T_{N\text{-GPU}}$ is the median step time with $N$ GPUs. This is equivalent to the throughput-ratio formulation used in the Single Node section ($\text{N-GPU total throughput} / (N \times \text{1-GPU throughput})$); step time and throughput are reciprocals, so the two expressions are identical. Each step processes $N$ times more data in parallel (one local batch per GPU), so the global batch size grows with GPU count and fewer steps are needed per epoch. A step that takes the same wall-clock time as the 1-GPU baseline therefore represents a perfect $N\times$ throughput improvement, and 100% efficiency means no overhead from parallelisation.
+where T(1-GPU) is the median step time on 1 GPU and T(N-GPU) is the median step time with N GPUs. This is equivalent to the throughput-ratio formulation used in the Single Node section (N-GPU total throughput / (N × 1-GPU throughput)); step time and throughput are reciprocals, so the two expressions are identical. Each step processes N times more data in parallel (one local batch per GPU), so the global batch size grows with GPU count and fewer steps are needed per epoch. A step that takes the same wall-clock time as the 1-GPU baseline therefore represents a perfect N× throughput improvement, and 100% efficiency means no overhead from parallelisation.
 
 **Per-step scaling** (Simple profiler, NVTX, `nsys` profile, rank 0):
 
@@ -688,7 +686,7 @@ This section contains the detailed data tables supporting the condensed findings
 
 ### Action 1: Initial 4-GPU Baseline
 
-$$\text{Scaling efficiency} = \frac{\text{4-GPU total throughput}}{4 \times \text{1-GPU throughput}} \times 100\%$$
+> **Scaling efficiency** = 4-GPU total throughput / (4 × 1-GPU throughput) × 100%
 
 | Metric | 1 GPU | 4 GPUs (1 node) | Change |
 | :--- | :--- | :--- | :--- |
