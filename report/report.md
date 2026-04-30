@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Anemoi is an open-source framework developed by ECMWF (The European Centre for Medium-Range Weather Forecasts) for training data-driven numerical weather prediction models [1, 2]. Its flagship models are graph-based neural networks that operate over irregular geographic meshes, combining a Graph Transformer encoder-processor-decoder architecture with domain-specific spherical harmonics kernels. Training these models at production resolution is computationally intensive: a single training step on the `O96` dataset [3] — an octahedral reduced Gaussian grid with approximately 1° (≈111 km) horizontal resolution and ~40,320 grid points — requires ~187 TFLOPs of computation and generates ~95 GB of theoretical activation memory, necessitating both high-memory accelerators and efficient distributed training across many nodes. The `N320` dataset (a higher-resolution octahedral grid, approximately 0.25°) is used for initial scaling comparisons alongside `O96`; both datasets reach the same wall-clock minimum at 100 nodes with the same setup-overhead growth pattern, though `N320`'s heavier per-step compute delays the crossover point. All detailed profiling focuses on `O96`, as the bottleneck characterisation is expected to carry over to `N320`.
+Anemoi is an open-source framework developed by ECMWF (The European Centre for Medium-Range Weather Forecasts) for training data-driven numerical weather prediction models [[1]](#ref-1), [[2]](#ref-2). Its flagship models are graph-based neural networks that operate over irregular geographic meshes, combining a Graph Transformer encoder-processor-decoder architecture with domain-specific spherical harmonics kernels. Training these models at production resolution is computationally intensive: a single training step on the `O96` dataset [[3]](#ref-3) — an octahedral reduced Gaussian grid with approximately 1° (≈111 km) horizontal resolution and ~40,320 grid points — requires ~187 TFLOPs of computation and generates ~95 GB of theoretical activation memory, necessitating both high-memory accelerators and efficient distributed training across many nodes. The `N320` dataset (a higher-resolution octahedral grid, approximately 0.25°) is used for initial scaling comparisons alongside `O96`; both datasets reach the same wall-clock minimum at 100 nodes with the same setup-overhead growth pattern, though `N320`'s heavier per-step compute delays the crossover point. All detailed profiling focuses on `O96`, as the bottleneck characterisation is expected to carry over to `N320`.
 
-Isambard-AI [4] is a UK national AI research supercomputer hosted at the University of Bristol, based on NVIDIA GH200 Grace Hopper Superchips [5, 16]. Each node provides 4 GH200 GPUs with 96 GB HBM3e each, connected intra-node via NVLink, and inter-node via the HPE Slingshot 11 high-speed interconnect [17]. Isambard-AI is one of the first large-scale GH200 deployments available for open research, and its performance characteristics for distributed deep learning workloads — particularly for memory-bandwidth-bound models like Anemoi — are not yet well characterised.
+Isambard-AI [[4]](#ref-4) is a UK national AI research supercomputer hosted at the University of Bristol, based on NVIDIA GH200 Grace Hopper Superchips [[5]](#ref-5), [[16]](#ref-16). Each node provides 4 GH200 GPUs with 96 GB HBM3e each, connected intra-node via NVLink, and inter-node via the HPE Slingshot 11 high-speed interconnect [[17]](#ref-17). Isambard-AI is one of the first large-scale GH200 deployments available for open research, and its performance characteristics for distributed deep learning workloads — particularly for memory-bandwidth-bound models like Anemoi — are not yet well characterised.
 
 This report documents a systematic investigation of Anemoi training performance on Isambard-AI, starting from a single GPU and scaling up to 100 nodes (400 GPUs) for detailed profiling. The scope is limited to computational performance characterisation — throughput, step time, scaling efficiency, and hardware utilisation. Model quality and training convergence are not assessed. The work is structured around three questions:
 
@@ -101,7 +101,7 @@ The total job time is again decomposed into training time and setup time to unde
 
 Before undertaking the detailed per-tier investigation — from single GPU through single node to multi-node — a hardware sanity check was performed to rule out the physical network as the source of the scaling overhead observed in the initial tests.
 
-NCCL (NVIDIA Collective Communications Library) [6] is the communication backend used by PyTorch for gradient synchronisation in distributed training. It implements collective operations such as `All-Reduce` — the operation that averages gradients across all GPUs at the end of each backward pass — and is optimised for NVIDIA interconnects including NVLink (intra-node) and high-speed fabrics such as Slingshot (inter-node). The NCCL `All-Reduce` benchmark measures the raw bandwidth of this operation using synthetic data, isolating the interconnect from any framework or training overhead. This provides a hardware speed limit against which software-level bottlenecks can be judged.
+NCCL (NVIDIA Collective Communications Library) [[6]](#ref-6) is the communication backend used by PyTorch for gradient synchronisation in distributed training. It implements collective operations such as `All-Reduce` — the operation that averages gradients across all GPUs at the end of each backward pass — and is optimised for NVIDIA interconnects including NVLink (intra-node) and high-speed fabrics such as Slingshot (inter-node). The NCCL `All-Reduce` benchmark measures the raw bandwidth of this operation using synthetic data, isolating the interconnect from any framework or training overhead. This provides a hardware speed limit against which software-level bottlenecks can be judged.
 
 NCCL `All-Reduce` benchmarks were carried out on Isambard-AI across 1, 10, 50, and 200 nodes.
 
@@ -119,8 +119,8 @@ Five profiling tools were used in sequence to characterise performance, each ans
 | **Anemoi simple profiler** | Step time, throughput, forward/backward/optimizer breakdown | What is the baseline throughput and performance characteristics? |
 | **Anemoi detailed profiler** | Model characteristics: parameter count, TMACs, theoretical activation memory, peak measured memory | What are the model's compute and memory demands? |
 | **PyTorch Profiler / TensorBoard** | Operator host time, GPU utilisation, Tensor Core utilisation, kernel occupancy | Which operations are slow, and what do indirect hardware metrics indicate? |
-| **`nsys` (Nsight Systems)** [14] | CPU–GPU timeline, CUDA API time, kernel launch counts, kernel time by type | Is the GPU busy, and what does the kernel structure look like? |
-| **`ncu` (Nsight Compute)** [13] | Per-kernel memory and compute throughput as % of hardware peak (Speed-of-Light) | Are kernels actually memory-bound or compute-bound at the hardware level? |
+| **`nsys` (Nsight Systems)** [[14]](#ref-14) | CPU–GPU timeline, CUDA API time, kernel launch counts, kernel time by type | Is the GPU busy, and what does the kernel structure look like? |
+| **`ncu` (Nsight Compute)** [[13]](#ref-13) | Per-kernel memory and compute throughput as % of hardware peak (Speed-of-Light) | Are kernels actually memory-bound or compute-bound at the hardware level? |
 
 Together they form a funnel — from throughput at the top down to direct hardware measurement. The first three tools establish the baseline and evaluate optimisation actions; `nsys` is used alongside `torch.compile` to track structural CPU–GPU changes, and then with `ncu` provides hardware-level roofline analysis confirming the workload is memory-bandwidth bound.
 
@@ -163,7 +163,7 @@ The baseline identified three concrete observations: (1) ~60 GB of unused VRAM, 
 | :--- | :--- | :--- |
 | **1 — Batch Size** | 8 → 16 | More data per step saturates memory bandwidth and improves GPU utilisation |
 | **2 — DataLoader Workers** | 8 → 16/32 | More prefetch workers eliminate any residual data starvation |
-| **3 — torch.compile** [15] | Eager → compiled | Kernel fusion via Triton reduces element-wise fragmentation and CPU dispatch overhead |
+| **3 — torch.compile** [[15]](#ref-15) | Eager → compiled | Kernel fusion via Triton reduces element-wise fragmentation and CPU dispatch overhead |
 | **4 — FP8 Precision** | BF16 → FP8 | Halving weight precision reduces data movement, potentially closing the memory-bandwidth gap |
 
 - **Action 1 — Batch Size 16:** ❌ No throughput gain (−1.8%, simple profiler). Step time doubled with 2× data; peak memory doubled to ~72% of HBM3e. The bottleneck is not data supply.
@@ -175,7 +175,7 @@ Detailed data tables for each action are in [Supplementary Material: Single GPU 
 
 ### `nsys` Deep-Dive
 
-NVIDIA Nsight Systems (`nsys`) [14] is a system-level profiler that records a timeline of CPU and GPU activity — API calls, kernel launches, and memory transfers — allowing CPU–GPU interaction patterns to be inspected directly. `nsys` profiling at three stages of optimisation (baseline eager, compiled, compiled with further changes) tracks how this interaction changes and confirms that removing software inefficiencies does not shift the hardware ceiling.
+NVIDIA Nsight Systems (`nsys`) [[14]](#ref-14) is a system-level profiler that records a timeline of CPU and GPU activity — API calls, kernel launches, and memory transfers — allowing CPU–GPU interaction patterns to be inspected directly. `nsys` profiling at three stages of optimisation (baseline eager, compiled, compiled with further changes) tracks how this interaction changes and confirms that removing software inefficiencies does not shift the hardware ceiling.
 
 At baseline, 625,957 CUDA kernel launches (~3,130/step) generated heavy CPU–GPU synchronisation: `cudaStreamSynchronize` — a blocking call where the CPU waits for the GPU to finish queued work — accounted for 91.0% of CUDA API time (152.9 s total, 20,982 calls over 200 steps). Despite this, GPU utilisation remained 92.81%, indicating the GPU had sufficient work queued to stay busy between sync points. After `torch.compile`, `cudaStreamSynchronize` dropped to 0.1% of CUDA API time (0.13 s, 21,011 calls) — stalls were effectively eliminated, confirmed directly by the compiled nsys profile. Kernel launches fell by 31% to ~429,000, and Triton kernels appeared in the compiled profile, confirming operator fusion. As a side effect, device-to-device memory movement increased ~2.7× (398 GB → 1,087 GB), reflecting Triton workspace buffers. Despite these structural changes, throughput did not improve.
 
@@ -190,7 +190,7 @@ Sparse routing (`indexSelectLargeIndex`, 13%) warrants further investigation: ed
 
 ### `ncu` Hardware Measurement
 
-`nsys` shows *when* the GPU is busy; `ncu` (Nsight Compute) [13] measures *how efficiently* each kernel uses the hardware. By replaying each CUDA kernel with hardware performance counters, `ncu` reports Speed-of-Light (SOL) metrics — memory bandwidth and compute throughput as a percentage of theoretical peak. GH200’s ridge point is ~247 FLOP/Byte (989 TFLOP/s peak dense BF16 ÷ 4.0 TB/s peak HBM3e bandwidth [5, 16]); kernels below this arithmetic intensity are memory-bound regardless of GPU utilisation [10]. `ncu` was run on the baseline (eager BF16) configuration using `--set roofline`, capturing 500 kernels after skipping one warmup step (~3,130 kernel launches), covering all distinct kernel types.
+`nsys` shows *when* the GPU is busy; `ncu` (Nsight Compute) [[13]](#ref-13) measures *how efficiently* each kernel uses the hardware. By replaying each CUDA kernel with hardware performance counters, `ncu` reports Speed-of-Light (SOL) metrics — memory bandwidth and compute throughput as a percentage of theoretical peak. GH200’s ridge point is ~247 FLOP/Byte (989 TFLOP/s peak dense BF16 ÷ 4.0 TB/s peak HBM3e bandwidth [[5]](#ref-5), [[16]](#ref-16)); kernels below this arithmetic intensity are memory-bound regardless of GPU utilisation [[10]](#ref-10). `ncu` was run on the baseline (eager BF16) configuration using `--set roofline`, capturing 500 kernels after skipping one warmup step (~3,130 kernel launches), covering all distinct kernel types.
 
 The per-kernel SOL metrics reveal three distinct performance regimes:
 
@@ -201,7 +201,7 @@ See [`ncu` Speed-of-Light Values per Kernel](#ncu-speed-of-light-values-per-kern
 
 **GEMM kernels are memory-bound.** Linear projections — which should saturate Tensor Cores on large matrices — are instead bottlenecked by HBM3e bandwidth. This is the direct hardware confirmation of low Tensor Core utilisation observed via TensorBoard. O96's matrix dimensions are determined by the number of grid points (~40,320) and the batch size; the resulting arithmetic intensity falls well below GH200's dense BF16 ridge point of ~247 FLOP/Byte, placing every GEMM in the memory-bound region of the roofline.
 
-**`nvjet_hsh` is near the ridge point.** Both memory and compute SOL are high simultaneously, meaning these cuDNN kernels (graph message-passing) are well-optimised and are not the limiting bottleneck. FlashAttention [11] (`flash_fwd_kernel`, `flash_bwd_*`) accounts for ~19% of GPU kernel time (nsys) but was not captured within the 500-kernel ncu window; based on its tiled SRAM design — avoiding repeated HBM reads for keys and values — it is expected to be near the ridge point, consistent with the `nvjet_hsh` measurements.
+**`nvjet_hsh` is near the ridge point.** Both memory and compute SOL are high simultaneously, meaning these cuDNN kernels (graph message-passing) are well-optimised and are not the limiting bottleneck. FlashAttention [[11]](#ref-11) (`flash_fwd_kernel`, `flash_bwd_*`) accounts for ~19% of GPU kernel time (nsys) but was not captured within the 500-kernel ncu window; based on its tiled SRAM design — avoiding repeated HBM reads for keys and values — it is expected to be near the ridge point, consistent with the `nvjet_hsh` measurements.
 
 **Sparse routing is latency-bound.** `indexFuncLargeIndex` shows low SOL on both axes — it is bottlenecked by irregular memory access patterns from Anemoi's geographic mesh connectivity, not by bandwidth or compute capacity.
 
@@ -231,7 +231,7 @@ Each Isambard-AI node hosts **4 GH200 GPUs** connected via NVLink. Moving from 1
 
 **Background.** Early single node/4-GPU runs showed **76.5% efficiency** (step times ranging from ~1,185 ms to ~1,234 ms across different nodes and profiling configurations). `CUDA_LAUNCH_BLOCKING=1` was present in the SLURM job environment — carried over from a prior debugging session — but was not recognised as the cause, triggering a seven-action investigation before the root cause was found. The key lesson: **verify the job environment before beginning any performance investigation**. A misconfigured environment variable invalidated the initial baseline and drove a substantial profiling campaign that could have been avoided.
 
-`CUDA_LAUNCH_BLOCKING=1` forces every CUDA kernel launch to be synchronous, turning ~11 µs async dispatches into blocking waits. With ~625,000 kernel launches over 200 steps (~3,130 per step), the cumulative cost is ~220 ms. PyTorch DDP [12] amplifies the effect further through additional `cudaStreamSynchronize` calls for NCCL bucket coordination.
+`CUDA_LAUNCH_BLOCKING=1` forces every CUDA kernel launch to be synchronous, turning ~11 µs async dispatches into blocking waits. With ~625,000 kernel launches over 200 steps (~3,130 per step), the cumulative cost is ~220 ms. PyTorch DDP [[12]](#ref-12) amplifies the effect further through additional `cudaStreamSynchronize` calls for NCCL bucket coordination.
 
 Despite being triggered by a misconfiguration, the investigation is retained in this report rather than removed. It covers NCCL overlap profiling, forward/backward isolation, DDP configuration, I/O and thermal ruling-out, and kernel dispatch analysis — the natural sequence of checks for any intra-node scaling regression — and serves as a practical diagnostic reference for future work. 
 
@@ -463,7 +463,7 @@ The backward pass takes 28.27 s versus 10.18 s for the forward pass (2.8:1 ratio
 
 ### TensorBoard Trace Detail
 
-> **Note:** The TensorBoard PyTorch Profiler plugin (`torch-tb-profiler`) used for this analysis has since been deprecated and is scheduled for permanent removal on 03/05/2026. This work was completed before decommission. For future profiling, the recommended replacements are **HTA** (Holistic Trace Analysis) [8] for programmatic GPU utilisation, kernel breakdown, and memory analysis, and **Perfetto UI** [9] for interactive kernel-level timeline inspection.
+> **Note:** The TensorBoard PyTorch Profiler plugin (`torch-tb-profiler`) used for this analysis has since been deprecated and is scheduled for permanent removal on 03/05/2026. This work was completed before decommission. For future profiling, the recommended replacements are **HTA** (Holistic Trace Analysis) [[8]](#ref-8) for programmatic GPU utilisation, kernel breakdown, and memory analysis, and **Perfetto UI** [[9]](#ref-9) for interactive kernel-level timeline inspection.
 
 The detailed profiler produces a TensorBoard trace. The four trace views collectively confirm the memory-bound characterisation:
 
@@ -593,7 +593,7 @@ GH200 has two performance ceilings:
 
 - **Memory ceiling**: 4.0 TB/s peak HBM3e bandwidth [5, 16]
 - **Compute ceiling**: ~989 TFLOP/s peak dense BF16 (Tensor Core; 1,979 TFLOP/s with structured sparsity) [5, 16]
-- **Ridge point**: ~247 FLOP/Byte (dense) — the arithmetic intensity at which a kernel transitions from memory-bound to compute-bound [10]
+- **Ridge point**: ~247 FLOP/Byte (dense) — the arithmetic intensity at which a kernel transitions from memory-bound to compute-bound [[10]](#ref-10)
 
 A kernel operating below the ridge point is constrained by how fast data can be loaded from HBM3e, not by how fast the GPU can compute. Increasing compute throughput does nothing; the only way to improve throughput is to reduce data movement or increase reuse.
 
@@ -838,36 +838,36 @@ The startup timer callback fires on five Lightning hooks from rank 0. T0 is set 
 
 ## References
 
-[1] ECMWF. "Anemoi: European framework for AI weather forecasting." ECMWF AIFS Blog, 2026. <https://www.ecmwf.int/en/about/media-centre/aifs-blog/2026/anemoi-european-framework-ai>
+<a id="ref-1"></a>[1] ECMWF. "Anemoi: European framework for AI weather forecasting." ECMWF AIFS Blog, 2026. <https://www.ecmwf.int/en/about/media-centre/aifs-blog/2026/anemoi-european-framework-ai>
 
-[2] ECMWF. *anemoi-core*. GitHub, 2024. <https://github.com/ecmwf/anemoi-core>
+<a id="ref-2"></a>[2] ECMWF. *anemoi-core*. GitHub, 2024. <https://github.com/ecmwf/anemoi-core>
 
-[3] ECMWF. "ERA5 `O96`." *Anemoi Training Documentation*, 2024. <https://anemoi.readthedocs.io/projects/training/en/latest/user-guide/download-era5-o96.html>
+<a id="ref-3"></a>[3] ECMWF. "ERA5 `O96`." *Anemoi Training Documentation*, 2024. <https://anemoi.readthedocs.io/projects/training/en/latest/user-guide/download-era5-o96.html>
 
-[4] University of Bristol. *Isambard-AI Documentation*. <https://docs.isambard.ac.uk/>
+<a id="ref-4"></a>[4] University of Bristol. *Isambard-AI Documentation*. <https://docs.isambard.ac.uk/>
 
-[5] NVIDIA. "GH200 Grace Hopper Superchip." <https://www.nvidia.com/en-gb/data-center/grace-hopper-superchip/>
+<a id="ref-5"></a>[5] NVIDIA. "GH200 Grace Hopper Superchip." <https://www.nvidia.com/en-gb/data-center/grace-hopper-superchip/>
 
-[6] NVIDIA. *NCCL: NVIDIA Collective Communications Library*. <https://developer.nvidia.com/nccl>
+<a id="ref-6"></a>[6] NVIDIA. *NCCL: NVIDIA Collective Communications Library*. <https://developer.nvidia.com/nccl>
 
-[7] PyTorch. *torch.utils.checkpoint — Activation Checkpointing*. <https://pytorch.org/docs/stable/checkpoint.html>
+<a id="ref-7"></a>[7] PyTorch. *torch.utils.checkpoint — Activation Checkpointing*. <https://pytorch.org/docs/stable/checkpoint.html>
 
-[8] Meta Research. *HTA: Holistic Trace Analysis*. GitHub, 2023. <https://github.com/facebookresearch/HolisticTraceAnalysis>
+<a id="ref-8"></a>[8] Meta Research. *HTA: Holistic Trace Analysis*. GitHub, 2023. <https://github.com/facebookresearch/HolisticTraceAnalysis>
 
-[9] Google. *Perfetto UI — System Profiling, App Tracing and Trace Analysis*. <https://ui.perfetto.dev/>
+<a id="ref-9"></a>[9] Google. *Perfetto UI — System Profiling, App Tracing and Trace Analysis*. <https://ui.perfetto.dev/>
 
-[10] S. Williams, A. Waterman, and D. Patterson. "Roofline: An Insightful Visual Performance Model for Multicore Architectures." *Communications of the ACM*, 52(4):65–76, 2009. DOI: 10.1145/1498765.1498785
+<a id="ref-10"></a>[10] S. Williams, A. Waterman, and D. Patterson. "Roofline: An Insightful Visual Performance Model for Multicore Architectures." *Communications of the ACM*, 52(4):65–76, 2009. <https://doi.org/10.1145/1498765.1498785>
 
-[11] T. Dao, D. Y. Fu, S. Ermon, A. Rudra, and C. Ré. "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness." *Advances in Neural Information Processing Systems*, 2022. arXiv:2205.14135
+<a id="ref-11"></a>[11] T. Dao, D. Y. Fu, S. Ermon, A. Rudra, and C. Ré. "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness." *Advances in Neural Information Processing Systems*, 2022. <https://arxiv.org/abs/2205.14135>
 
-[12] S. Li, Y. Zhao, R. Varma, O. Salpekar, P. Noordhuis, T. Li, A. Paszke, J. Smith, B. Vaughan, P. Damania, and S. Chintala. "PyTorch Distributed: Experiences on Accelerating Data Parallel Training." *Proceedings of the VLDB Endowment*, 13(12), 2020. arXiv:2006.15704
+<a id="ref-12"></a>[12] S. Li, Y. Zhao, R. Varma, O. Salpekar, P. Noordhuis, T. Li, A. Paszke, J. Smith, B. Vaughan, P. Damania, and S. Chintala. "PyTorch Distributed: Experiences on Accelerating Data Parallel Training." *Proceedings of the VLDB Endowment*, 13(12), 2020. <https://arxiv.org/abs/2006.15704>
 
-[13] NVIDIA. *Nsight Compute Documentation*. <https://docs.nvidia.com/nsight-compute/>
+<a id="ref-13"></a>[13] NVIDIA. *Nsight Compute Documentation*. <https://docs.nvidia.com/nsight-compute/>
 
-[14] NVIDIA. *Nsight Systems Documentation*. <https://docs.nvidia.com/nsight-systems/>
+<a id="ref-14"></a>[14] NVIDIA. *Nsight Systems Documentation*. <https://docs.nvidia.com/nsight-systems/>
 
-[15] J. Ansel et al. "PyTorch 2: Faster Machine Learning Through Dynamic Python Bytecode Transformation and Graph Compilation." *Proceedings of the 29th ACM ASPLOS*, 2024. arXiv:2403.16452
+<a id="ref-15"></a>[15] J. Ansel et al. "PyTorch 2: Faster Machine Learning Through Dynamic Python Bytecode Transformation and Graph Compilation." *Proceedings of the 29th ACM ASPLOS*, 2024. <https://dl.acm.org/doi/10.1145/3620665.3640366>
 
-[16] NVIDIA. "NVIDIA Hopper Architecture In-Depth." *NVIDIA Technical Blog*, 2022. <https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/>
+<a id="ref-16"></a>[16] NVIDIA. "NVIDIA Hopper Architecture In-Depth." *NVIDIA Technical Blog*, 2022. <https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/>
 
-[17] HPE. *HPE Slingshot Interconnect*. <https://www.hpe.com/us/en/compute/hpc/slingshot-interconnect.html>
+<a id="ref-17"></a>[17] HPE. *HPE Slingshot Interconnect*. <https://www.hpe.com/us/en/compute/hpc/slingshot-interconnect.html>
