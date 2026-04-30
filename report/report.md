@@ -37,22 +37,22 @@ Early runs showed 76.5% efficiency due to `CUDA_LAUNCH_BLOCKING=1` present in th
 Multi-node scaling was characterised from 2 to 100 nodes (8 to 400 GPUs) on `O96`. The headline results:
 
 ![Multi-Node Scaling Efficiency — Executive Summary](plots/0.1_exec_summary_scaling.png)
-*Figure 0.1. Scaling efficiency at each node count. Green bars (≥ 93%) indicate full AllReduce overlap; the drop below 88% at 50–100 nodes marks the onset of TREE_LL communication on the critical path.*
+*Figure 0.1. Scaling efficiency at each node count. Green bars (≥ 93%) indicate efficient scaling; the drop at 50–100 nodes coincides with the NCCL RING_LL → TREE_LL algorithm switch and growth in forward-pass overhead.*
 
-Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85% at 50 nodes, where it stabilises. The primary mechanism is the **NCCL algorithm switch**: up to 10 nodes NCCL uses RING_LL and `All-Reduce` is fully overlapped within the backward pass. At 50 nodes NCCL switches predominantly to TREE_LL, pushing AllReduce kernel time to 621 ms/step and saturating 83% of the 748 ms backward window — overlap ends and communication appears on the critical path.
+Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85% at 50–100 nodes. The primary mechanism is growth in **forward-pass overhead** — the DDP `_pre_forward` buffer broadcast (`ncclDevKernel_Broadcast_RING_LL`) growing from 23.6 ms/step at 10 nodes to 101.6 ms/step at 100 nodes, plus an unexplained 64 ms spike at 50 nodes. AllReduce backward wall time remains stable (709–765 ms across all node counts) despite total AllReduce kernel time reaching 621 ms/step at 50 nodes, indicating AllReduce continues to pipeline within the backward pass. The NCCL algorithm switch from RING_LL to TREE_LL at 50 nodes raises AllReduce kernel time but does not measurably extend the backward wall time.
 
 **Wall-clock optimum** for `O96` is 100 nodes (82 s/epoch); for `N320` also ~100 nodes (669 s/epoch). Scaling beyond 100 nodes offers no wall-clock benefit and degrades cost efficiency sharply.
 
-**Startup overhead** becomes a significant fraction of total job time at scale — 52 s at 50 nodes, 79 s at 100 nodes — driven by the DDP weight broadcast (36.8 s at 100 nodes) and NCCL first-batch warmup (11.1 s at 10 nodes). Reducing startup overhead is the higher-priority improvement at large node counts.
+**Startup overhead** becomes a significant fraction of total job time at scale — 52 s at 50 nodes, 79 s at 100 nodes — driven by the DDP weight broadcast (36.8 s at 100 nodes) and NCCL first-batch warmup (16.9 s at 10 nodes). These are one-time per-job costs that amortise quickly over a full training run.
 
 ### Where to Look for Performance Improvements
 
 For readers focused on improving training throughput or reducing job turnaround time:
 
 - **Single-GPU throughput** — the dominant kernel classes (GEMMs, element-wise operations) are hardware-bound at the HBM3e memory-bandwidth ceiling; no software change can address this without increasing arithmetic intensity. The one actionable cost centre is sparse routing (`indexSelectLargeIndex` + `indexFuncLargeIndex`, ~13% of runtime), which is latency/cache-bound due to irregular sparse access and could be reduced by pre-computing graph indices. `nvjet_hsh` (~36% of runtime) is already near the ridge point and is not a target. Details are in [Optimisation Actions](#optimisation-actions).
-- **Single-node efficiency** — 96.1% at 4 GPUs relative to 1 GPU; there is limited scope for further improvement. The residual forward-pass overhead is characterised in [Action 8: Characterising the Multi-Rank Overhead with NVTX Markers](#action-8-characterising-the-multi-rank-overhead-with-nvtx-markers).
-- **Multi-node step time** — at 50+ nodes, AllReduce communication saturates the backward window and is on the critical path. Potential levers are discussed in [Action 1: Baseline Multi-Node Training Runs](#action-1-baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
-- **Multi-node startup time** — at 100 nodes startup overhead accounts for ~79 s, dominated by the DDP weight broadcast and NCCL warmup. Targets are documented in [Action 2: Startup Overhead](#action-2-startup-overhead) under *Startup improvement opportunities*.
+- **Single-node efficiency** — 96.1% at 4 GPUs relative to 1 GPU; there is limited scope for further improvement. The residual forward-pass overhead is characterised in [Action 8: Root Cause — CUDA_LAUNCH_BLOCKING](#action-8-root-cause--cuda_launch_blocking).
+- **Multi-node step time** — at 50+ nodes, forward-pass overhead grows substantially (DDP Broadcast + unexplained overhead) and is the primary driver of efficiency loss. Potential levers are discussed in [Baseline Multi-Node Training Runs](#baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
+- **Multi-node startup time** — at 100 nodes startup overhead accounts for ~79 s, dominated by the DDP weight broadcast and NCCL warmup. Analysis is in [Startup Overhead Analysis](#startup-overhead-analysis).
 
 ## Initial Scaling Tests
 
@@ -197,7 +197,7 @@ The per-kernel SOL metrics reveal three distinct performance regimes:
 ![`ncu` Roofline: Memory SOL vs Compute SOL per Kernel Type](plots/3.2_roofline.png)
 *Figure 7. Roofline scatter plot of Memory SOL (x-axis) vs Compute SOL (y-axis) for the dominant kernel types. Points are the mean SOL across 500 captured kernels; error bars show the observed min–max range. Kernels in the upper-right are near the ridge point; kernels shifted left are memory-bound. The GH200 ridge point (~247 FLOP/Byte, dense BF16) separates the memory-bound and compute-bound regions.*
 
-See [`ncu` Speed-of-Light values per kernel](#`ncu`-speed-of-light-values-per-kernel) in Supplementary Material for the numerical breakdown.
+See [`ncu` Speed-of-Light Values per Kernel](#ncu-speed-of-light-values-per-kernel) in Supplementary Material for the numerical breakdown.
 
 **GEMM kernels are memory-bound.** Linear projections — which should saturate Tensor Cores on large matrices — are instead bottlenecked by HBM3e bandwidth. This is the direct hardware confirmation of low Tensor Core utilisation observed via TensorBoard. O96's matrix dimensions are determined by the number of grid points (~40,320) and the batch size; the resulting arithmetic intensity falls well below GH200's dense BF16 ridge point of ~247 FLOP/Byte, placing every GEMM in the memory-bound region of the roofline.
 
@@ -298,7 +298,7 @@ NVTX phase breakdowns across two nodes revealed dramatic variability:
 | 4-GPU best (nid010706) | 10.6 µs | 625,691 |
 | 4-GPU worst (nid010881) | 215.3 µs | 625,691 |
 
-Kernel launch counts are identical across configurations — multi-rank training introduces no extra launches. On nid010881, the 20× increase in dispatch latency (11 µs → 215 µs) is consistent with `CUDA_LAUNCH_BLOCKING=1` in the job environment, which forces kernel launches to block until completion. With ~3,130 launches per step the cumulative cost is ~220 ms. NCCL's higher CPU wake frequency amplifies this into disproportionate overhead. With a clean job environment (nid010706), the remaining 44 ms overhead arises from GPU stream fragmentation (~20 ms) and a forward-pass buffer broadcast stall (~19 ms).
+Kernel launch counts are identical across configurations — multi-rank training introduces no extra launches. On nid010881, the 20× increase in dispatch latency (11 µs → 215 µs) is consistent with `CUDA_LAUNCH_BLOCKING=1` in the job environment, which forces kernel launches to block until completion. With ~3,130 launches per step the cumulative cost is ~220 ms. NCCL's higher CPU wake frequency amplifies this into disproportionate overhead. With a clean job environment (nid010706), the remaining 44 ms overhead includes GPU stream fragmentation (~23 ms backward overhead) and a forward-pass buffer broadcast stall (~19 ms forward overhead), with the small residual in optimizer and inter-phase gaps.
 
 **Verdict.** With a clean job environment, 4-GPU scaling efficiency is **95.7%** (987 ms → 1,031 ms/step). `CUDA_LAUNCH_BLOCKING=1` in the job environment is the sole cause of the degraded 76.5% efficiency seen in early runs. **Verify the job environment before any performance investigation.** The forward-pass buffer broadcast should be monitored at multi-node scale where it runs over Slingshot.
 
@@ -308,7 +308,7 @@ Kernel launch counts are identical across configurations — multi-rank training
 
 With single-GPU and single-node behaviour established, this section characterises how Anemoi scales across multiple nodes connected via the HPE Slingshot 11 interconnect. The key questions are: how efficiently does gradient synchronisation scale from 2 to 100 nodes, where does NCCL communication become the critical-path bottleneck, and how large is the startup overhead relative to training time at scale? All runs use the `O96` dataset, eager BF16, batch size 8, and the same job environment controls established in the single-node section (`CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` explicitly unset).
 
-### Action 1: Baseline Multi-Node Training Runs (2–100 Nodes)
+### Baseline Multi-Node Training Runs (2–100 Nodes)
 
 <!-- 
 1 gpu:
@@ -327,9 +327,9 @@ With single-GPU and single-node behaviour established, this section characterise
 /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/10_50nodes_profiling/3_startup
  -->
 
-**Goal:** Establish baseline step time and startup time at 2, 10, and 50 nodes to quantify the scaling efficiency and startup overhead growth beyond 1 node.
+**Goal:** Establish baseline step time and startup time from 2 to 100 nodes to quantify scaling efficiency and startup overhead growth beyond 1 node.
 
-For the 1-GPU, 1 node, 2 nodes, and 10 nodes, 200 steps of the simple profiler with NVTX markers and `nsys profile` capture were used, whereas due to dataset size, the number of steps for the 50-node and 100-node runs had to be reduced to 40 and 24 respectively. Since 24–40 steps is still sufficient to get a stable median step time, this should not affect the validity of the scaling efficiency calculation, especially when comparing median times across runs.
+For the 1-GPU, 1 node, 2 nodes, and 10 nodes, 200 steps of the simple profiler with NVTX markers and `nsys profile` capture were used. The 25-node run completed only 80 steps — the epoch ended early due to dataset size. The 50-node and 100-node runs were limited to 40 and 24 steps respectively for the same reason. Since 24–80 steps is still sufficient to get a stable median step time, this should not affect the validity of the scaling efficiency calculation, especially when comparing median times across runs.
 
 Scaling efficiency is calculated as:
 
@@ -340,14 +340,12 @@ where T(1-GPU) is the median step time on 1 GPU and T(N-GPU) is the median step 
 **Per-step scaling** (Simple profiler, NVTX, `nsys` profile, rank 0):
 
 ![Multi-Node Scaling Efficiency](plots/4.1_scaling_efficiency.png)
-*Figure 9. Scaling efficiency vs node count. Efficiency is flat at ~94–96% up to 10 nodes, degrades to ~85% at 50 nodes, then stabilises. The drop at 50 nodes coincides with the NCCL RING_LL → TREE_LL algorithm switch.*
+*Figure 9. Scaling efficiency vs node count. Efficiency is flat at ~94–96% up to 10 nodes, drops to 90.8% at 25 nodes, then to ~85% at 50 nodes — slightly below the trend, coinciding with the NCCL RING_LL → TREE_LL switch — and holds at 85.6% at 100 nodes.*
 
 ![Multi-Node Step Time Phase Breakdown](plots/4.2_step_breakdown.png)
-*Figure 10. Median step time decomposed into backward, forward (derived), and optimizer phases by node count. Backward is relatively stable; the forward residual grows sharply at 50 nodes, consistent with the DDP buffer broadcast scaling over Slingshot.*
+*Figure 10. Median step time decomposed into backward, forward (derived), and optimizer phases by node count. Backward is relatively stable; the forward residual grows sharply at 50 nodes before partially recovering at 100 nodes, with the 50-node spike likely reflecting a transient effect rather than pure DDP broadcast scaling.*
 
-See [Per-Step Scaling Summary](#per-step-scaling-summary) in Supplementary Material for the numerical breakdown.
-
-Full per-step timing statistics (backward/forward/optimizer med/min/max/stddev) are in [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail).
+See [Full Per-Step Timing Statistics (Action 1)](#full-per-step-timing-statistics-action-1) in Supplementary Material for the numerical breakdown.
 
 > [!NOTE]
 > Each configuration is based on a single experiment. The reported values should be treated as indicative rather than statistically robust - run-to-run variance in step time, NCCL behaviour, and job scheduling noise are not accounted for. All timing statistics are collected from rank 0; in synchronous DDP training the effective step time is bounded by the slowest rank, so inter-rank variance is not captured and rank 0 may underestimate true wall-clock step time.
@@ -355,76 +353,71 @@ Full per-step timing statistics (backward/forward/optimizer med/min/max/stddev) 
 > [!IMPORTANT]
 > Median is the correct central measure for step time in these runs. Mean-based metrics are likely to be heavily distorted by the first-batch NCCL warmup and should not be used to compare scaling performance across node counts.
 
-- **Scaling efficiency declines gradually from 10 to 50 nodes, then stabilises.** It is flat up to 10 nodes (~94–96%), drops to 90.8% at 25 nodes, then to ~85% at 50 nodes, and holds there at 100 nodes (85.6%). The decline is not a single step-change but a progressive degradation in the 10–50 node range.
+- **Scaling efficiency declines gradually.** It is flat up to 10 nodes (~94–96%), drops to 90.8% at 25 nodes, then to ~85% at 50 nodes — slightly below the trend, coinciding with the NCCL RING_LL → TREE_LL switch — and holds at 85.6% at 100 nodes.
 
-- **Backward peaks at 25 nodes (+7.9% vs 1-GPU) and eases at higher counts; NCCL `All-Reduce` is fully overlapped up to 10 nodes.**
+- **Backward peaks at 25 nodes (+7.9% vs 1-GPU) and eases at higher counts; forward peaks at 50 nodes (+48% vs 1-GPU) before easing slightly; NCCL `All-Reduce` remains overlapped with the backward at all scales tested** — backward wall time is stable (709–765 ms) across all node counts despite AllReduce kernel time growing from 43 ms (1 node) to 621 ms (50 nodes), indicating AllReduce pipelines within the backward pass throughout.
 
-To identify how much time is taken by NCCL communication and whether it is on the critical path, the GPU kernel time for the f32 AllReduce kernels `ncclDevKernel_AllReduce_Sum_f32_*` (the main NCCL collective for gradient synchronisation) can be compared to the backward NVTX wall time in ``nsys` stats` reports.
+- **`cudaLaunchKernel` median is flat (8.2 → 7.4 µs across all scales)** — CPU dispatch is not a bottleneck at any scale tested.
+
+#### Backward Pass and AllReduce Analysis
+
+To identify how much time NCCL communication takes relative to available overlap, the total GPU kernel time for f32 AllReduce (`ncclDevKernel_AllReduce_Sum_f32_*`) is compared to the **backward NVTX wall time**. The backward pass is the natural overlap window because DDP launches AllReduce on each gradient bucket as it becomes available during the backward, allowing communication and compute to run concurrently. If total AllReduce kernel time stays well below the backward wall time, AllReduce completes before the backward finishes and adds nothing to step time. If it approaches or exceeds the backward wall time, some AllReduce work may spill past the backward and delay the optimizer step.
 
 ![NCCL AllReduce Saturation vs Backward Window](plots/4.3_nccl_allreduce.png)
 *Figure 11. NCCL AllReduce kernel time (RING_LL + TREE_LL) as a fraction of the backward NVTX window at each scale. Saturation remains below 50% up to 25 nodes (AllReduce fully overlapped), jumps to 83% at 50 nodes when NCCL switches to TREE_LL, then eases to 70% at 100 nodes.*
 
 See [NCCL AllReduce Kernel Time per Scale](#nccl-allreduce-kernel-time-per-scale) in Supplementary Material for the numerical breakdown.
 
-Total f32 AllReduce GPU kernel time per step grows 42.6 ms (1 node) → 145.6 ms (2 nodes) → 329.6 ms (10 nodes), yet the backward NVTX wall time at 10 nodes is only 737 ms (45% saturation) — the `All-Reduce` runs co`ncu`rrently with compute and is not on the critical path.
+AllReduce kernel time grows from 42.6 ms (1 node) to 329.6 ms (10 nodes, 45% of the 737 ms backward window) and 377.1 ms (25 nodes, 49% of 764.9 ms) — in both cases well within the backward, so AllReduce is fully overlapped. At 25 nodes the backward nevertheless peaks (+7.9% vs 1-GPU), suggesting the mixed RING/TREE transitional regime adds overhead the saturation metric does not capture.
 
-At 25 nodes, AllReduce remains predominantly RING_LL (317.3 ms) with a growing TREE_LL component (59.8 ms), totalling 377.1 ms per step — 49% of the 764.9 ms backward window. Despite the low saturation, backward reaches its peak of 764.9 ms (+7.9% vs 1-GPU) at this scale. This suggests that at 25 nodes NCCL is operating in a transitional algorithm regime, and the mixed RING/TREE mode may introduce overhead beyond what pure saturation would predict. The cause is not established from the available data.
+At 50 nodes NCCL switches to predominantly TREE_LL (621 ms total AllReduce; 615 ms TREE_LL, 6 ms RING_LL; 83% saturation), yet backward wall time rises only 39 ms above the 1-GPU baseline — AllReduce continues to pipeline within the backward. At 100 nodes AllReduce drops to 519 ms/step (70% saturation); TREE_LL launch count falls 34 → 29 per step at similar per-launch cost (a count effect, cause unknown), and backward eases by 10 ms — though the 100-node backward StdDev (169 ms) dwarfs this improvement.
 
-At 50 nodes, NCCL switches predominantly to TREE_LL, pushing total f32 AllReduce kernel time to 621 ms per step (TREE_LL: 615 ms + residual RING_LL: 5.5 ms) — 83% of the 748 ms backward window — ending full overlap.
+#### Forward Residual Decomposition
 
-At 100 nodes, total f32 AllReduce kernel time is 519 ms per step (TREE_LL: 504 ms + residual RING_LL: 15 ms) — 70% of the 738 ms backward window. Notably, TREE_LL kernel launches per step fall from 34 at 50 nodes to 29 at 100 nodes at similar per-launch cost — the reduction in total AllReduce time is a count effect rather than a per-kernel speedup. The cause of the reduced launch count is not established from the available data. The reduced window saturation (83% → 70%) is consistent with the small observed improvement in backward median (748.2 → 738.4 ms), though the 100-node backward StdDev is 169.4 ms — far larger than the improvement itself — so this difference should not be over-interpreted.
+The derived forward is a residual (step − backward − optimizer) and includes all untagged overhead; it cannot be interpreted in isolation.
 
-- **Derived forward is a residual (step − backward − optimizer) and includes all untagged overhead; it cannot be interpreted in isolation.** 
+It is visible in Figure 10 and the [Full Per-Step Timing Statistics](#full-per-step-timing-statistics-action-1) table: stable from 1-GPU to 10 nodes (261.8 → 284.8 ms, +23 ms total), rises moderately at 25 nodes (+17 ms), then jumps sharply at 50 nodes (+86 ms), then falls back slightly at 100 nodes (−19 ms).
 
-It is stable from 1-GPU to 10 nodes (261.8 → 284.8 ms, +23 ms total), rises moderately at 25 nodes (+17 ms), then jumps sharply at 50 nodes (+86 ms), then falls back slightly at 100 nodes (−19 ms).
+![Forward Residual Decomposition](plots/4.5_forward_residual.png)
+*Figure 12. Forward residual decomposed into baseline forward compute (1-GPU floor), `ncclDevKernel_Broadcast_RING_LL`, and unexplained overhead. The 50-node bar shows a 64 ms unexplained spike with no identifiable kernel source; at 100 nodes Broadcast dominates (28% of forward residual) but the unexplained component collapses back to ~6 ms.*
 
-`ncclDevKernel_Broadcast_RING_LL` (DDP buffer sync that runs before the forward pass) is one of the contributors within this residual: it grows from 23.6 ms/step at 10 nodes to 37.1 ms/step at 25 nodes to 62.1 ms/step at 50 nodes. The Broadcast growth from 10 to 25 nodes (+13.5 ms) roughly matches the forward residual growth over the same interval (+17.2 ms). From 10 to 50 nodes, the forward residual grows by +103 ms (284.8 → 387.9 ms). Broadcast accounts for +38.5 ms (~37%) of that; the remaining ~65 ms is not attributable to any kernel visible in the available data. At 100 nodes, Broadcast continues to grow to 101.6 ms/step (+39.5 ms vs 50 nodes), yet the derived forward drops by 18.6 ms — implying that other untagged components within the residual improved by ~58 ms. The cause is not established from the available data. **A full per-kernel GPU trace is needed to decompose the forward residual reliably.**
+`ncclDevKernel_Broadcast_RING_LL` (DDP `_pre_forward` buffer sync) is one attributable contributor, measured via `nsys gpukernsum` (total kernel time ÷ steps): 23.6 ms → 37.1 ms → 62.1 ms → 101.6 ms at 10/25/50/100 nodes. Unlike AllReduce, Broadcast uses RING_LL at all node counts. From 10 to 50 nodes it accounts for +38.5 ms (~37%) of the +103 ms forward jump; the remaining ~65 ms has no identifiable kernel source. At 100 nodes Broadcast grows +39.5 ms yet the derived forward *drops* 18.6 ms, implying ~58 ms of other residual components improved.
 
-- **`cudaLaunchKernel` median is flat (8.2 → 7.4 µs across all scales)** — CPU dispatch is not a bottleneck at any scale tested.
-
-See [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail) for simple profiler cross-validation and statistical caveats on step-max and optimizer skew.
+> [!IMPORTANT]
+> The 50-node run is a likely outlier: the unexplained 64 ms forward spike is non-monotonic (the 100-node forward is 18 ms lower), suggesting a transient hardware or network effect rather than a systematic software scaling issue. Full decomposition would require a per-kernel GPU trace at 50 nodes, which is beyond the scope of this work; if the anomaly persists in future runs at this scale it warrants further investigation. Outside this outlier, scaling is gradual and the efficiency loss is consistent with expected DDP overhead at increasing node counts.
 
 **Performance improvement opportunities:**
 
 - **Set `broadcast_buffers=False` in DDP.** The `ncclDevKernel_Broadcast_RING_LL` kernel grows from 23.6 ms/step at 10 nodes to 62.1 ms/step at 50 nodes to 101.6 ms/step at 100 nodes (8.9% of total step time). The `O96` model uses Layer Norm, not Batch Norm, so this cross-rank buffer sync is unnecessary. Disabling it could potentially recover ~38 ms of unexplained forward overhead at 50 nodes and ~62 ms at 100 nodes, partially restoring scaling efficiency at both scales.
 
-- **Investigate forcing RING_LL at 25–50 nodes or increasing gradient bucket size.** NCCL selects TREE_LL automatically beyond a rank-count threshold. At 25 nodes the algorithm is already in a mixed RING/TREE transitional regime (317.3 ms RING + 59.8 ms TREE per step), and at 50 nodes it switches predominantly to TREE_LL (615 ms/step), saturating 83% of the backward window and ending full overlap. Forcing RING_LL via `NCCL_ALGO=RING` may restore the ~95% efficiency seen at lower node counts. Alternatively, increasing the DDP gradient bucket size beyond the default 25 MB would reduce the ~34 AllReduce calls per step at 50 nodes (29 at 100 nodes), lowering per-step NCCL overhead regardless of algorithm. Note: the single-node profiling in Action 3 reports 31 buckets per step under the same 25 MB default; the reason the count differs at multi-node scale is not established from the available data.
-
-- **Investigate and eliminate the unexplained 65 ms forward overhead at 50 nodes.** The DDP Broadcast (+38 ms) accounts for only 37% of the forward jump at 50 nodes. A full GPU kernel trace (`cuda_kern_sum`) at 50 nodes is needed to identify the remaining source — likely a synchronisation barrier or activation-checkpointing recompute scaling with world size. This is the single largest unresolved bottleneck.
-
-- **Mitigate NCCL first-batch warmup (11.07 s at 10 nodes).** This is the dominant cost for short/debug runs. The warmup can be eliminated by adding a dummy forward/backward pass before the profiled window, or by pre-initialising NCCL communicators with a no-op collective before training begins.
+- **Mitigate NCCL first-batch warmup (16.9 s at 10 nodes).** This is the dominant cost for short/debug runs. The warmup can be eliminated by adding a dummy forward/backward pass before the profiled window, or by pre-initialising NCCL communicators with a no-op collective before training begins.
 
 - **Profile rank heterogeneity.** All timing data is from rank 0. The step max values (16,934 ms at 10 nodes) suggest at least one rank is significantly slower. Collecting profiles across all ranks — or at minimum the slowest rank — would confirm whether the efficiency loss at 50 nodes is uniform or driven by a single straggler.
 
-### Action 2: Startup Overhead
+If the 50-node performance degradation persists in future runs, the following could be investigated:
 
-**Method.** A lightweight Lightning callback ([`experiments/diagnostics/callbacks/startup_timer.py`](experiments/diagnostics/callbacks/startup_timer.py)) emits a timestamped log line at each key Lightning hook from rank 0 only. T0 is set at callback instantiation — after Python imports and Hydra config loading, but before model initialisation and Lightning setup.
+- **Run a full per-kernel GPU trace at 50 nodes** to identify the source of the unexplained ~65 ms forward overhead. The DDP Broadcast (+38 ms) accounts for only ~37% of the forward jump; the remainder has no identifiable kernel source in the available data.
 
-The callback fires on `setup`, `on_fit_start`, `on_train_start`, `on_train_batch_start`, and `on_train_batch_end` (batch 0 only), then stops. No changes to `train.py` are required. The `delta` column directly identifies which phase grows between scales.
+- **Investigate forcing RING_LL or increasing the gradient bucket size.** NCCL switches to predominantly TREE_LL at 50 nodes (621 ms total, 615 ms TREE_LL). Backward wall time remains stable despite this, but forcing RING_LL via `NCCL_ALGO=RING` or increasing the DDP bucket size beyond the default 25 MB would reduce the number of AllReduce calls per step (~34 at 50 nodes, 29 at 100 nodes) and may help at the transitional 25-node regime.
 
-The phases map to the following operations:
+See [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail) for simple profiler cross-validation and statistical caveats on step-max and optimizer skew.
+
+### Startup Overhead Analysis
+
+At large node counts, startup time can rival or exceed training time for short runs — at 100 nodes, the 79.1 s startup is roughly 3× the 27 s of actual training (24 steps). On a shared HPC cluster where allocation time is scarce, startup overhead directly reduces the fraction of walltime spent doing useful work. Understanding which phase dominates at each scale is necessary to prioritise optimisation and to set realistic step-count minimums for future profiling runs.
+
+**Method.** A lightweight Lightning callback ([`experiments/diagnostics/callbacks/startup_timer.py`](experiments/diagnostics/callbacks/startup_timer.py)) emits a timestamped log line at each key Lightning hook from rank 0 only. T0 is set at callback instantiation — after Python imports and Hydra config loading, but before model initialisation and Lightning setup. The five phases map to the following operations:
+
 - **T0 → setup**: model and graph construction, dataset open, weight initialisation.
 - **setup → on_fit_start**: DDP model wrapping and weight broadcast from rank 0 to all ranks (462 MB over NVLink intra-node, Slingshot inter-node). The dominant cost at 50 nodes (+17.6 s).
 - **on_fit_start → on_train_start**: NCCL process group initialisation and communicator setup.
 - **on_train_start → first batch start**: gradient bucket allocation and data prefetch.
 - **First batch**: forward + backward + first AllReduce, including NCCL topology negotiation warmup. The dominant cost at 10 nodes (+16.9 s).
 
-**Startup overhead** (wall-clock from T0 to end of first batch, rank 0):
+**Startup overhead** (wall-clock from T0 to end of first batch, rank 0; full numerical table in [Startup Phase Definitions and Raw Timings](#startup-phase-definitions-and-raw-timings)):
 
 ![Startup Overhead by Phase and Node Count](plots/4.4_startup_overhead.png)
-*Figure 12. Startup overhead decomposed by phase at each node count. The dominant cost shifts from NCCL first-batch warmup at 10 nodes (16.9 s) to DDP weight broadcast at 50–100 nodes (17.6–36.8 s). The 25-node T0→setup bar is anomalously tall (164.4 s) due to a single-run Lustre contention spike.*
-
-| Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) | 100-GPU (25 nodes) | 200-GPU (50 nodes) | 400-GPU (100 nodes) |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| T0 → setup (model + data ready) | 11.2 s | 12.7 s | 12.0 s | 18.0 s | 164.4 s † | 20.6 s | 28.8 s |
-| setup → on_fit_start (Lightning init) | 0.5 s | 0.3 s | 0.5 s | 2.8 s | 5.8 s | 17.6 s | 36.8 s |
-| on_fit_start → on_train_start (NCCL init) | 4.6 s | 4.6 s | 4.7 s | 6.8 s | 3.9 s | 6.9 s | 9.1 s |
-| on_train_start → first batch start (bucket alloc) | 1.4 s | 3.6 s | 4.1 s | 1.8 s | 1.8 s | 2.7 s | 1.7 s |
-| First batch (NCCL warmup) | 1.2 s | 1.2 s | 2.7 s | 16.9 s | 1.4 s | 4.2 s | 2.8 s |
-| **Total** | **18.9 s** | **22.5 s** | **24.0 s** | **46.2 s** | **177.3 s †** | **52.0 s** | **79.1 s** |
-| **vs 1-GPU** | — | +3.6 s | +5.1 s | +27.3 s | — † | +33.1 s | +60.2 s |
-
-† The 25-node `T0 → setup` phase (164.4 s) is an anomalous outlier — 8× above any other case at comparable scale — consistent with a Lustre contention spike or a slow node assignment on this single run. All other 25-node phases are in range with surrounding cases. The total and vs-1-GPU values for 25 nodes are dominated by this artefact and are not comparable to the other entries.
+*Figure 13. Startup overhead decomposed by phase at each node count. The dominant cost shifts from NCCL first-batch warmup at 10 nodes (16.9 s) to DDP weight broadcast at 50–100 nodes (17.6–36.8 s). The 25-node run is excluded — its T0→setup phase (164.4 s) is a single-run outlier with no confirmed cause that would compress the other bars.*
 
 - **The dominant bottleneck shifts with scale.** At 2 nodes the first batch accounts for most of the added startup cost (+1.5 s, first inter-node NCCL allreduce). At 10 nodes the first batch explodes to 16.9 s (NCCL topology warmup at 40 ranks). At 50 nodes the bottleneck moves to `setup → on_fit_start` (+17.1 s over the 1-GPU baseline), covering DDP model wrapping and the 462 MB weight broadcast to 200 ranks over Slingshot. At 100 nodes this phase doubles to 36.8 s (+36.3 s over baseline), consistent with the broadcast cost scaling linearly with node count.
 
@@ -434,15 +427,9 @@ The phases map to the following operations:
 
 - **At 50 and 100 nodes, startup time far exceeds training time for these short runs.** At 50 nodes: 52.0 s startup vs ~46 s training (40 steps × ~1.15 s/step). At 100 nodes: 79.1 s startup vs ~27 s training (24 steps × ~1.14 s/step) — startup is 3× longer than training. This reinforces the recommendation to run at least 200 steps at these node counts where dataset size permits.
 
-- **T0 → setup grows modestly** (11.2 s at 1-GPU → 28.8 s at 100 nodes, +17.6 s), likely from parallel Zarr dataset opens on Lustre contending at higher rank counts. The 25-node spike (164.4 s) is a single-run anomaly, not a systematic scaling effect. At 100 nodes this phase is no longer the primary bottleneck — `setup → on_fit_start` (36.8 s) is.
+- **T0 → setup grows modestly** (11.2 s at 1-GPU → 28.8 s at 100 nodes, +17.6 s). The 25-node spike (164.4 s) is a single-run anomaly with no confirmed cause — if it recurs systematically at that scale it warrants investigation. At 100 nodes this phase is no longer the primary bottleneck — `setup → on_fit_start` (36.8 s) is.
 
-**Startup improvement opportunities:**
-
-- **Eliminate the weight broadcast at scale (potential −17.6 s at 50 nodes, −36.8 s at 100 nodes).** The `setup → on_fit_start` cost doubles from 17.6 s (50 nodes, 200 ranks) to 36.8 s (100 nodes, 400 ranks), consistent with the 462 MB broadcast scaling linearly with node count over Slingshot. The most direct fix is to load weights independently on each rank from a shared checkpoint on Lustre, removing the rank-0 broadcast entirely. A simpler intermediate option is to split the broadcast into per-node sub-groups (broadcast within NVLink domain first, then one representative per node does the cross-node transfer), reducing Slingshot traffic from 1×462 MB to N_nodes×(462 MB / N_nodes).
-
-- **Pre-warm NCCL before the first training batch (potential −16.9s at 10 nodes).** A single no-op collective inserted after `on_train_start` but before the first batch — e.g. `dist.all_reduce(torch.zeros(1, device="cuda"))` — would trigger NCCL topology negotiation and channel warmup without affecting training. This would bring 10-node total startup from 46.2s to approximately 29s.
-
-- **Stagger Zarr dataset opens to reduce Lustre contention (partial improvement to T0 → setup).** Currently all ranks open the same dataset files simultaneously. A simple fix is to stagger opens by local rank (`time.sleep(local_rank * 0.05)`) or have only one rank per node open files and broadcast metadata. This would not eliminate the 20.6s cost but would reduce the growth with rank count.
+- **All startup costs are one-time per-job and amortise quickly.** Both the weight broadcast (up to 36.8 s at 100 nodes) and the NCCL first-batch warmup (16.9 s at 10 nodes) are fixed overheads. Over a real training run of ~1000 steps they represent 3% and 1.5% of total walltime respectively — negligible. The practical recommendation is to run at least 200 steps at all node counts where dataset size permits.
 
 ## Further Work
 
@@ -586,7 +573,7 @@ GPU utilisation remained 92.81% — the GPU was not starved. The stall activity 
 | :--- | :--- | :--- | :--- |
 | **cudaLaunchKernel calls** | 625,957 | ~429,000 | **−31%** |
 | **Fused element-wise ops** | ~0 | >50,000 | Triton fusion active |
-| **D2D Memory Movement** | 398 GB | 1.2 TB | +3× (expected) |
+| **D2D Memory Movement** | 398 GB | 1,087 GB | ~2.7× (expected) |
 | **cudaStreamSynchronize share** | ~91% | Negligible | CPU stall removed |
 
 The 3× D2D increase is expected — Triton kernels allocate workspace buffers in HBM3e, trading bandwidth for compute locality.
@@ -613,6 +600,20 @@ A kernel operating below the ridge point is constrained by how fast data can be 
 #### Measurement Methodology
 
 `ncu` was run on the baseline (eager BF16) configuration using `--set roofline` to collect Speed-of-Light (SOL) metrics — the percentage of peak memory bandwidth and peak SM compute throughput reached by each kernel. A launch-skip of 3,130 kernels (one warmup step) was applied before capturing 500 kernels, covering all distinct kernel types in a training step. Default kernel replay mode (`--replay-mode kernel`) was used; application replay was not viable because Anemoi is non-deterministic across runs.
+
+### `ncu` Speed-of-Light Values per Kernel
+
+Numerical SOL values from the 500-kernel `ncu` capture (eager BF16, job 4263705). Each row gives the mean (mid-point) and observed range across the captured kernel instances. FlashAttention (`flash_fwd_kernel`, `flash_bwd_*`) was not captured in this window and is excluded.
+
+| Kernel type | Memory SOL mid (%) | Memory SOL range (%) | Compute SOL mid (%) | Compute SOL range (%) | Regime |
+| :--- | ---: | :--- | ---: | :--- | :--- |
+| CUTLASS GEMM (linear projections) | 92 | 88–96 | 33 | 30–36 | Memory-bound |
+| Element-wise kernels (add, mul, copy) | 92 | 90–93 | 21 | 13–29 | Memory-bound |
+| Layer norm backward | 90 | — | 53 | — | Memory-bound |
+| `nvjet_hsh` (graph message-passing) | ~70 | 65–75 | ~88 | 80–95 | Near ridge point |
+| `indexFuncLargeIndex` (sparse routing backward) | 14 | — | 56 | — | Latency/cache-bound |
+
+The GH200 ridge point is ~247 FLOP/Byte (dense BF16). Kernels with Memory SOL >> Compute SOL lie in the memory-bound region; `nvjet_hsh` is the only kernel class near the ridge. See Figure 7 in the main text for the roofline scatter plot.
 
 ---
 
@@ -737,10 +738,6 @@ Total NCCL data volume: 2 × ¾ × 462 MB = 693 MB/step. At 22.3 ms NCCL time/st
 
 This section contains supporting data and statistical caveats for the condensed findings in the [Multi Node Scaling](#multi-node-scaling) section.
 
-### Simple Profiler Cross-Validation (Action 1)
-
-The simple profiler provides per-rank averages complementary to the `nsys` rank-0 medians. All values are per-rank averages.
-
 ### Full Per-Step Timing Statistics (Action 1)
 
 The condensed scaling summary in the main section omits per-phase min/max/stddev. Full statistics are below.
@@ -785,6 +782,24 @@ The simple profiler provides per-rank averages complementary to the `nsys` rank-
 - **Total throughput scales super-linearly in absolute terms** (8.1 → 2,212 samples/s, 273× at 100 nodes) as expected — each additional GPU adds a full local batch worth of compute.
 - **Dataloader is not a bottleneck at any scale.** Throughput (4,500–9,400 batches/s) is far above the per-rank training consumption rate (0.69–1.01 batches/s), with ample headroom at all scales tested.
 
+### NCCL AllReduce Kernel Time per Scale
+
+f32 AllReduce GPU kernel time per step from `nsys stats` (`ncclDevKernel_AllReduce_Sum_f32_RING_LL` + `ncclDevKernel_AllReduce_Sum_f32_TREE_LL`), compared against the backward NVTX wall time. See Figure 11 in [Multi Node Scaling](#multi-node-scaling) for the saturation plot.
+
+| Node count | GPUs | RING_LL (ms/step) | TREE_LL (ms/step) | Total AllReduce (ms/step) | Backward window (ms) | Saturation (%) | Algorithm regime |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | :--- |
+| 1 (intra-node) | 4 | 42.6 | — | 42.6 | ~735 | ~6% | RING_LL (NVLink) |
+| 2 | 8 | 145.6 | — | 145.6 | ~744 | ~20% | RING_LL |
+| 10 | 40 | 329.6 | — | 329.6 | 737.2 | 45% | RING_LL |
+| 25 | 100 | 317.3 | 59.8 | 377.1 | 764.9 | 49% | Mixed RING/TREE |
+| 50 | 200 | 5.5 | 615.0 | 621.0 | 748.2 | 83% | TREE_LL dominant |
+| 100 | 400 | 15.0 | 504.0 | 519.0 | 738.4 | 70% | TREE_LL dominant |
+
+- **Up to 10 nodes:** AllReduce total kernel time is ≤45% of the backward window; backward wall time is close to the 1-GPU baseline.
+- **25 nodes:** Transitional regime — both RING_LL and TREE_LL active simultaneously. Backward peaks at 764.9 ms (+7.9% vs 1-GPU).
+- **50 nodes:** NCCL switches predominantly to TREE_LL. AllReduce kernel time reaches 621 ms (83% of backward window), but backward wall time (748 ms) is only 39 ms above 1-GPU — AllReduce continues to pipeline within the backward pass.
+- **100 nodes:** TREE_LL launch count falls from 34 to 29 per step at similar per-launch cost; saturation eases to 70%, consistent with the small improvement in backward median (748 → 738 ms).
+
 ### Statistical Caveats (Action 1)
 
 - **Step max and StdDev are elevated above steady-state at all multi-node scales and cannot be fully attributed from aggregate profiling data alone.** Step max excess above median ranges from 479 ms (25 nodes) to 15,901 ms (10 nodes). The NVTX summary does not record which step produced the maximum — only the aggregate min/max across all steps. The most likely contributor is a cold-start NCCL communicator on the first step: at 10 and 50 nodes, the single `ncclDevKernel_AllReduce_Sum_u32_TREE_LL` instance (11.07 s and 1.63 s respectively) is large enough that a first-step origin is certain. At 25 and 100 nodes the same kernel is negligible, so the step max excess could reflect a cold-start effect on a different collective, an intermittent NCCL stall, or scheduler-induced jitter on any step. A step-level kernel trace is required to distinguish these cases.
@@ -794,6 +809,30 @@ The simple profiler provides per-rank averages complementary to the `nsys` rank-
 - **Backward minimum decreases at 10 nodes (686.2 ms vs 701.6 ms at 1-GPU) and falls anomalously low at 100 nodes (384.9 ms).** The 10-node dip suggests NCCL async overlap hides part of the compute latency in the best case. The 100-node figure is an artefact of the small 24-step run — a single unusually fast step pulls the minimum well below any plausible compute floor.
 
 - **All figures are rank 0 only — the true step time is gated by the slowest rank.** Median and minimum values reflect rank 0 behaviour; in practice the job cannot advance until all ranks complete. The step max values (16,934 ms at 10 nodes, 1,555 ms at 25 nodes, 4,184 ms at 50 nodes, 2,807 ms at 100 nodes) are the better bound on worst-case job duration per step.
+
+### Startup Phase Definitions and Raw Timings
+
+The startup timer callback fires on five Lightning hooks from rank 0. T0 is set at callback instantiation — after Python imports and Hydra config loading, but before model initialisation. The `delta` column in each run identifies which phase grows between scales.
+
+| Phase | Operation |
+| :--- | :--- |
+| T0 → setup | Model and graph construction, dataset open, weight initialisation |
+| setup → on_fit_start | DDP model wrapping and weight broadcast from rank 0 to all ranks (462 MB over NVLink intra-node, Slingshot inter-node) |
+| on_fit_start → on_train_start | NCCL process group initialisation and communicator setup |
+| on_train_start → first batch start | Gradient bucket allocation and data prefetch |
+| First batch | Forward + backward + first AllReduce, including NCCL topology negotiation warmup |
+
+| Phase | 1-GPU | 4-GPU (1 node) | 8-GPU (2 nodes) | 40-GPU (10 nodes) | 100-GPU (25 nodes) | 200-GPU (50 nodes) | 400-GPU (100 nodes) |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| T0 → setup | 11.2 s | 12.7 s | 12.0 s | 18.0 s | 164.4 s † | 20.6 s | 28.8 s |
+| setup → on_fit_start | 0.5 s | 0.3 s | 0.5 s | 2.8 s | 5.8 s | 17.6 s | 36.8 s |
+| on_fit_start → on_train_start | 4.6 s | 4.6 s | 4.7 s | 6.8 s | 3.9 s | 6.9 s | 9.1 s |
+| on_train_start → first batch start | 1.4 s | 3.6 s | 4.1 s | 1.8 s | 1.8 s | 2.7 s | 1.7 s |
+| First batch | 1.2 s | 1.2 s | 2.7 s | 16.9 s | 1.4 s | 4.2 s | 2.8 s |
+| **Total** | **18.9 s** | **22.5 s** | **24.0 s** | **46.2 s** | **177.3 s †** | **52.0 s** | **79.1 s** |
+| **vs 1-GPU** | — | +3.6 s | +5.1 s | +27.3 s | — † | +33.1 s | +60.2 s |
+
+† The 25-node `T0 → setup` phase (164.4 s) is an anomalous outlier — 8× above any other case at comparable scale — consistent with a Lustre contention spike or a slow node assignment on this single run. All other 25-node phases are in range with surrounding cases. The total and vs-1-GPU values for 25 nodes are dominated by this artefact and are not comparable to the other entries.
 
 ---
 
