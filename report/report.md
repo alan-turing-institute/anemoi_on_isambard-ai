@@ -1,5 +1,83 @@
 # Performance Characterisation of Anemoi Training on Isambard-AI
 
+**Author:** Tomas Lazauskas  
+**Affiliation:** The Alan Turing Institute  
+**Date:** 30 April 2026  
+**Document type:** Technical Report (version 1.0)
+
+## Abstract
+
+This report characterises the training performance of the Anemoi weather model on Isambard-AI GH200 (Grace Hopper) nodes, working from a single GPU up to 100 nodes (400 GPUs). At single-GPU scale, the `O96` workload is found to be memory-bandwidth bound: CUTLASS GEMM kernels reach 88–96% of peak HBM3e bandwidth but only 30–36% of peak compute throughput, placing them deep in the memory-bound region of the roofline. Software optimisations (torch.compile, FP8, batch size tuning) do not improve throughput because the bottleneck is the arithmetic intensity of the problem size, not software overhead. At multi-node scale, AllReduce gradient synchronisation remains fully pipelined within the backward pass at all tested node counts (up to 100 nodes, 400 GPUs), contributing no measurable critical-path overhead; efficiency degrades gradually from ~95% at 10 nodes to ~85% at 100 nodes, driven primarily by growth in forward-pass overhead.
+
+## Table of Contents
+
+- [Performance Characterisation of Anemoi Training on Isambard-AI](#performance-characterisation-of-anemoi-training-on-isambard-ai)
+  - [Abstract](#abstract)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Executive Summary](#executive-summary)
+    - [Single GPU](#single-gpu)
+    - [Single Node (4 GPUs, NVLink)](#single-node-4-gpus-nvlink)
+    - [Multi-Node Scaling (Slingshot interconnect)](#multi-node-scaling-slingshot-interconnect)
+    - [Where to Look for Performance Improvements](#where-to-look-for-performance-improvements)
+  - [Initial Scaling Tests](#initial-scaling-tests)
+    - [`O96` Strong Scaling](#o96-strong-scaling)
+    - [`N320` Strong Scaling](#n320-strong-scaling)
+  - [NCCL Benchmarking](#nccl-benchmarking)
+  - [Single GPU](#single-gpu-1)
+    - [Baseline Characterisation](#baseline-characterisation)
+    - [Optimisation Actions](#optimisation-actions)
+    - [`nsys` Deep-Dive](#nsys-deep-dive)
+    - [`ncu` Hardware Measurement](#ncu-hardware-measurement)
+    - [Summary](#summary)
+  - [Single Node Multi-GPU Scaling](#single-node-multi-gpu-scaling)
+    - [Investigation Summary](#investigation-summary)
+    - [Action 1: Initial 4-GPU Baseline](#action-1-initial-4-gpu-baseline)
+    - [Action 2: NCCL Communication Overlap](#action-2-nccl-communication-overlap)
+    - [Action 3: Isolating the Overhead](#action-3-isolating-the-overhead)
+    - [Action 4: DDP Configuration](#action-4-ddp-configuration)
+    - [Action 5: Data Loading](#action-5-data-loading)
+    - [Action 6: Node Heterogeneity and Thermal Throttling](#action-6-node-heterogeneity-and-thermal-throttling)
+    - [Action 7: Multi-Process vs Multi-Rank](#action-7-multi-process-vs-multi-rank)
+    - [Action 8: Root Cause — CUDA\_LAUNCH\_BLOCKING](#action-8-root-cause--cuda_launch_blocking)
+  - [Multi Node Scaling](#multi-node-scaling)
+    - [Baseline Multi-Node Training Runs (2–100 Nodes)](#baseline-multi-node-training-runs-2100-nodes)
+      - [Backward Pass and AllReduce Analysis](#backward-pass-and-allreduce-analysis)
+      - [Forward Residual Decomposition](#forward-residual-decomposition)
+    - [Startup Overhead Analysis](#startup-overhead-analysis)
+  - [Further Work](#further-work)
+  - [Supplementary Material: Single GPU Profiling Detail](#supplementary-material-single-gpu-profiling-detail)
+    - [Profiler Overhead: Simple vs Detailed](#profiler-overhead-simple-vs-detailed)
+    - [TensorBoard Trace Detail](#tensorboard-trace-detail)
+    - [Optimisation Action Data](#optimisation-action-data)
+      - [Action 1: Batch Size Increase](#action-1-batch-size-increase)
+      - [Action 2: DataLoader Workers](#action-2-dataloader-workers)
+      - [Action 3: torch.compile](#action-3-torchcompile)
+      - [Action 4: FP8 Precision](#action-4-fp8-precision)
+    - [`nsys`: Phases 1 and 2](#nsys-phases-1-and-2)
+      - [Phase 1: Baseline — CPU Dispatch Activity](#phase-1-baseline--cpu-dispatch-activity)
+      - [Phase 2: torch.compile — Kernel Fusion](#phase-2-torchcompile--kernel-fusion)
+      - [Fused AdamW](#fused-adamw)
+    - [`ncu`: Roofline Background and Measurement](#ncu-roofline-background-and-measurement)
+      - [Roofline Model](#roofline-model)
+      - [Measurement Methodology](#measurement-methodology)
+    - [`ncu` Speed-of-Light Values per Kernel](#ncu-speed-of-light-values-per-kernel)
+  - [Supplementary Material: Single Node Profiling Detail](#supplementary-material-single-node-profiling-detail)
+    - [Action 1: Initial 4-GPU Baseline](#action-1-initial-4-gpu-baseline-1)
+    - [Action 2: NCCL Communication Overlap](#action-2-nccl-communication-overlap-1)
+    - [Action 3: Isolating the Overhead](#action-3-isolating-the-overhead-1)
+    - [Action 4: DDP Configuration](#action-4-ddp-configuration-1)
+    - [Action 5: Data Loading](#action-5-data-loading-1)
+    - [Action 6: Node Heterogeneity and Thermal Throttling](#action-6-node-heterogeneity-and-thermal-throttling-1)
+    - [Action 7: Multi-Process vs Multi-Rank](#action-7-multi-process-vs-multi-rank-1)
+  - [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail)
+    - [Full Per-Step Timing Statistics (Action 1)](#full-per-step-timing-statistics-action-1)
+    - [Simple Profiler Cross-Validation](#simple-profiler-cross-validation)
+    - [NCCL AllReduce Kernel Time per Scale](#nccl-allreduce-kernel-time-per-scale)
+    - [Statistical Caveats (Action 1)](#statistical-caveats-action-1)
+    - [Startup Phase Definitions and Raw Timings](#startup-phase-definitions-and-raw-timings)
+  - [References](#references)
+
 ## Introduction
 
 Anemoi is an open-source framework developed by ECMWF (The European Centre for Medium-Range Weather Forecasts) for training data-driven numerical weather prediction models [[1]](#ref-1), [[2]](#ref-2). Its flagship models are graph-based neural networks that operate over irregular geographic meshes, combining a Graph Transformer encoder-processor-decoder architecture with domain-specific spherical harmonics kernels. Training these models at production resolution is computationally intensive: a single training step on the `O96` dataset [[3]](#ref-3) — an octahedral reduced Gaussian grid with approximately 1° (≈111 km) horizontal resolution and ~40,320 grid points — requires ~187 TFLOPs of computation and generates ~95 GB of theoretical activation memory, necessitating both high-memory accelerators and efficient distributed training across many nodes. The `N320` dataset (a higher-resolution octahedral grid, approximately 0.25°) is used for initial scaling comparisons alongside `O96`; both datasets reach the same wall-clock minimum at 100 nodes with the same setup-overhead growth pattern, though `N320`'s heavier per-step compute delays the crossover point. All detailed profiling focuses on `O96`, as the bottleneck characterisation is expected to carry over to `N320`.
