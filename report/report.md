@@ -37,9 +37,9 @@ Early runs showed 76.5% efficiency due to `CUDA_LAUNCH_BLOCKING=1` present in th
 Multi-node scaling was characterised from 2 to 100 nodes (8 to 400 GPUs) on `O96`. The headline results:
 
 ![Multi-Node Scaling Efficiency — Executive Summary](plots/0.1_exec_summary_scaling.png)
-*Figure 0.1. Scaling efficiency at each node count. Green bars (≥ 93%) indicate full AllReduce overlap; the drop below 88% at 50–100 nodes marks the onset of TREE_LL communication on the critical path.*
+*Figure 0.1. Scaling efficiency at each node count. Green bars (≥ 93%) indicate efficient scaling; the drop at 50–100 nodes coincides with the NCCL RING_LL → TREE_LL algorithm switch and growth in forward-pass overhead.*
 
-Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85% at 50 nodes, where it stabilises. The primary mechanism is the **NCCL algorithm switch**: up to 10 nodes NCCL uses RING_LL and `All-Reduce` is fully overlapped within the backward pass. At 50 nodes NCCL switches predominantly to TREE_LL, pushing AllReduce kernel time to 621 ms/step and saturating 83% of the 748 ms backward window — overlap ends and communication appears on the critical path.
+Efficiency is excellent up to 10 nodes (~94–95%) and degrades gradually to ~85% at 50–100 nodes. The primary mechanism is growth in **forward-pass overhead** — the DDP `_pre_forward` buffer broadcast (`ncclDevKernel_Broadcast_RING_LL`) growing from 23.6 ms/step at 10 nodes to 101.6 ms/step at 100 nodes, plus an unexplained 64 ms spike at 50 nodes. AllReduce backward wall time remains stable (709–765 ms across all node counts) despite total AllReduce kernel time reaching 621 ms/step at 50 nodes, indicating AllReduce continues to pipeline within the backward pass. The NCCL algorithm switch from RING_LL to TREE_LL at 50 nodes raises AllReduce kernel time but does not measurably extend the backward wall time.
 
 **Wall-clock optimum** for `O96` is 100 nodes (82 s/epoch); for `N320` also ~100 nodes (669 s/epoch). Scaling beyond 100 nodes offers no wall-clock benefit and degrades cost efficiency sharply.
 
@@ -51,7 +51,7 @@ For readers focused on improving training throughput or reducing job turnaround 
 
 - **Single-GPU throughput** — the dominant kernel classes (GEMMs, element-wise operations) are hardware-bound at the HBM3e memory-bandwidth ceiling; no software change can address this without increasing arithmetic intensity. The one actionable cost centre is sparse routing (`indexSelectLargeIndex` + `indexFuncLargeIndex`, ~13% of runtime), which is latency/cache-bound due to irregular sparse access and could be reduced by pre-computing graph indices. `nvjet_hsh` (~36% of runtime) is already near the ridge point and is not a target. Details are in [Optimisation Actions](#optimisation-actions).
 - **Single-node efficiency** — 96.1% at 4 GPUs relative to 1 GPU; there is limited scope for further improvement. The residual forward-pass overhead is characterised in [Action 8: Root Cause — CUDA_LAUNCH_BLOCKING](#action-8-root-cause--cuda_launch_blocking).
-- **Multi-node step time** — at 50+ nodes, AllReduce communication saturates the backward window and is on the critical path. Potential levers are discussed in [Action 1: Baseline Multi-Node Training Runs](#action-1-baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
+- **Multi-node step time** — at 50+ nodes, forward-pass overhead grows substantially (DDP Broadcast + unexplained overhead) and is the primary driver of efficiency loss. Potential levers are discussed in [Action 1: Baseline Multi-Node Training Runs](#action-1-baseline-multi-node-training-runs-2100-nodes) under *Performance improvement opportunities*.
 - **Multi-node startup time** — at 100 nodes startup overhead accounts for ~79 s, dominated by the DDP weight broadcast and NCCL warmup. Targets are documented in [Action 2: Startup Overhead](#action-2-startup-overhead) under *Startup improvement opportunities*.
 
 ## Initial Scaling Tests
@@ -308,7 +308,7 @@ Kernel launch counts are identical across configurations — multi-rank training
 
 With single-GPU and single-node behaviour established, this section characterises how Anemoi scales across multiple nodes connected via the HPE Slingshot 11 interconnect. The key questions are: how efficiently does gradient synchronisation scale from 2 to 100 nodes, where does NCCL communication become the critical-path bottleneck, and how large is the startup overhead relative to training time at scale? All runs use the `O96` dataset, eager BF16, batch size 8, and the same job environment controls established in the single-node section (`CUDA_LAUNCH_BLOCKING` and `TORCH_NCCL_BLOCKING_WAIT` explicitly unset).
 
-### Action 1: Baseline Multi-Node Training Runs (2–100 Nodes)
+### Baseline Multi-Node Training Runs (2–100 Nodes)
 
 <!-- 
 1 gpu:
@@ -327,9 +327,9 @@ With single-GPU and single-node behaviour established, this section characterise
 /home/u6fw/tomas.u6fw/u6fw_shared/tomas/anemoi_workspace/experiments/2_O96/10_50nodes_profiling/3_startup
  -->
 
-**Goal:** Establish baseline step time and startup time at 2, 10, and 50 nodes to quantify the scaling efficiency and startup overhead growth beyond 1 node.
+**Goal:** Establish baseline step time and startup time from 2 to 100 nodes to quantify scaling efficiency and startup overhead growth beyond 1 node.
 
-For the 1-GPU, 1 node, 2 nodes, and 10 nodes, 200 steps of the simple profiler with NVTX markers and `nsys profile` capture were used, whereas due to dataset size, the number of steps for the 50-node and 100-node runs had to be reduced to 40 and 24 respectively. Since 24–40 steps is still sufficient to get a stable median step time, this should not affect the validity of the scaling efficiency calculation, especially when comparing median times across runs.
+For the 1-GPU, 1 node, 2 nodes, and 10 nodes, 200 steps of the simple profiler with NVTX markers and `nsys profile` capture were used. The 25-node run completed only 80 steps — the epoch ended early due to dataset size. The 50-node and 100-node runs were limited to 40 and 24 steps respectively for the same reason. Since 24–80 steps is still sufficient to get a stable median step time, this should not affect the validity of the scaling efficiency calculation, especially when comparing median times across runs.
 
 Scaling efficiency is calculated as:
 
@@ -340,14 +340,12 @@ where T(1-GPU) is the median step time on 1 GPU and T(N-GPU) is the median step 
 **Per-step scaling** (Simple profiler, NVTX, `nsys` profile, rank 0):
 
 ![Multi-Node Scaling Efficiency](plots/4.1_scaling_efficiency.png)
-*Figure 9. Scaling efficiency vs node count. Efficiency is flat at ~94–96% up to 10 nodes, degrades to ~85% at 50 nodes, then stabilises. The drop at 50 nodes coincides with the NCCL RING_LL → TREE_LL algorithm switch.*
+*Figure 9. Scaling efficiency vs node count. Efficiency is flat at ~94–96% up to 10 nodes, drops to 90.8% at 25 nodes, then to ~85% at 50 nodes — slightly below the trend, coinciding with the NCCL RING_LL → TREE_LL switch — and holds at 85.6% at 100 nodes.*
 
 ![Multi-Node Step Time Phase Breakdown](plots/4.2_step_breakdown.png)
-*Figure 10. Median step time decomposed into backward, forward (derived), and optimizer phases by node count. Backward is relatively stable; the forward residual grows sharply at 50 nodes, consistent with the DDP buffer broadcast scaling over Slingshot.*
+*Figure 10. Median step time decomposed into backward, forward (derived), and optimizer phases by node count. Backward is relatively stable; the forward residual grows sharply at 50 nodes before partially recovering at 100 nodes, with the 50-node spike likely reflecting a transient effect rather than pure DDP broadcast scaling.*
 
 See [Full Per-Step Timing Statistics (Action 1)](#full-per-step-timing-statistics-action-1) in Supplementary Material for the numerical breakdown.
-
-Full per-step timing statistics (backward/forward/optimizer med/min/max/stddev) are in [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail).
 
 > [!NOTE]
 > Each configuration is based on a single experiment. The reported values should be treated as indicative rather than statistically robust - run-to-run variance in step time, NCCL behaviour, and job scheduling noise are not accounted for. All timing statistics are collected from rank 0; in synchronous DDP training the effective step time is bounded by the slowest rank, so inter-rank variance is not captured and rank 0 may underestimate true wall-clock step time.
@@ -355,49 +353,54 @@ Full per-step timing statistics (backward/forward/optimizer med/min/max/stddev) 
 > [!IMPORTANT]
 > Median is the correct central measure for step time in these runs. Mean-based metrics are likely to be heavily distorted by the first-batch NCCL warmup and should not be used to compare scaling performance across node counts.
 
-- **Scaling efficiency declines gradually from 10 to 50 nodes, then stabilises.** It is flat up to 10 nodes (~94–96%), drops to 90.8% at 25 nodes, then to ~85% at 50 nodes, and holds there at 100 nodes (85.6%). The decline is not a single step-change but a progressive degradation in the 10–50 node range.
+- **Scaling efficiency declines gradually.** It is flat up to 10 nodes (~94–96%), drops to 90.8% at 25 nodes, then to ~85% at 50 nodes — slightly below the trend, coinciding with the NCCL RING_LL → TREE_LL switch — and holds at 85.6% at 100 nodes.
 
-- **Backward peaks at 25 nodes (+7.9% vs 1-GPU) and eases at higher counts; NCCL `All-Reduce` is fully overlapped up to 10 nodes.**
+- **Backward peaks at 25 nodes (+7.9% vs 1-GPU) and eases at higher counts; forward peaks at 50 nodes (+48% vs 1-GPU) before easing slightly; NCCL `All-Reduce` remains overlapped with the backward at all scales tested** — backward wall time is stable (709–765 ms) across all node counts despite AllReduce kernel time growing from 43 ms (1 node) to 621 ms (50 nodes), indicating AllReduce pipelines within the backward pass throughout.
 
-To identify how much time is taken by NCCL communication and whether it is on the critical path, the GPU kernel time for the f32 AllReduce kernels `ncclDevKernel_AllReduce_Sum_f32_*` (the main NCCL collective for gradient synchronisation) can be compared to the backward NVTX wall time in `nsys stats` reports.
+- **`cudaLaunchKernel` median is flat (8.2 → 7.4 µs across all scales)** — CPU dispatch is not a bottleneck at any scale tested.
+
+#### Backward Pass and AllReduce Analysis
+
+To identify how much time NCCL communication takes relative to available overlap, the total GPU kernel time for f32 AllReduce (`ncclDevKernel_AllReduce_Sum_f32_*`) is compared to the **backward NVTX wall time**. The backward pass is the natural overlap window because DDP launches AllReduce on each gradient bucket as it becomes available during the backward, allowing communication and compute to run concurrently. If total AllReduce kernel time stays well below the backward wall time, AllReduce completes before the backward finishes and adds nothing to step time. If it approaches or exceeds the backward wall time, some AllReduce work may spill past the backward and delay the optimizer step.
 
 ![NCCL AllReduce Saturation vs Backward Window](plots/4.3_nccl_allreduce.png)
 *Figure 11. NCCL AllReduce kernel time (RING_LL + TREE_LL) as a fraction of the backward NVTX window at each scale. Saturation remains below 50% up to 25 nodes (AllReduce fully overlapped), jumps to 83% at 50 nodes when NCCL switches to TREE_LL, then eases to 70% at 100 nodes.*
 
 See [NCCL AllReduce Kernel Time per Scale](#nccl-allreduce-kernel-time-per-scale) in Supplementary Material for the numerical breakdown.
 
-Total f32 AllReduce GPU kernel time per step grows from 42.6 ms (1 node) to 329.6 ms (10 nodes), but remains within the 737 ms backward window (45% saturation) — AllReduce is fully overlapped with compute and is not on the critical path.
+AllReduce kernel time grows from 42.6 ms (1 node) to 329.6 ms (10 nodes, 45% of the 737 ms backward window) and 377.1 ms (25 nodes, 49% of 764.9 ms) — in both cases well within the backward, so AllReduce is fully overlapped. At 25 nodes the backward nevertheless peaks (+7.9% vs 1-GPU), suggesting the mixed RING/TREE transitional regime adds overhead the saturation metric does not capture.
 
-At 25 nodes, AllReduce is 377.1 ms/step (RING_LL: 317.3 ms + TREE_LL: 59.8 ms) — 49% of the 764.9 ms backward window. Despite the low saturation, backward peaks at 764.9 ms (+7.9% vs 1-GPU), suggesting the mixed RING/TREE transitional regime introduces overhead beyond what saturation alone predicts. The cause is not established from the available data.
+At 50 nodes NCCL switches to predominantly TREE_LL (621 ms/step, 83% saturation), yet backward wall time rises only 39 ms above the 1-GPU baseline — AllReduce continues to pipeline within the backward. At 100 nodes AllReduce drops to 519 ms/step (70% saturation); TREE_LL launch count falls 34 → 29 per step at similar per-launch cost (a count effect, cause unknown), and backward eases by 10 ms — though the 100-node backward StdDev (169 ms) dwarfs this improvement.
 
-At 50 nodes, NCCL switches predominantly to TREE_LL (615 ms + 5.5 ms residual RING_LL = 621 ms/step) — 83% of the 748 ms backward window — ending full overlap.
+#### Forward Residual Decomposition
 
-At 100 nodes, AllReduce drops to 519 ms/step (TREE_LL: 504 ms + RING_LL: 15 ms) — 70% of 738 ms. TREE_LL launch count falls from 34 to 29 per step at similar per-launch cost, so the reduction is a count effect, not a per-kernel speedup. The cause of the lower launch count is not established. The saturation improvement (83% → 70%) is consistent with the small backward improvement (748 → 738 ms), though the 100-node backward StdDev (169 ms) is far larger than the difference — it should not be over-interpreted.
-
-- **Derived forward is a residual (step − backward − optimizer) and includes all untagged overhead; it cannot be interpreted in isolation.** 
+The derived forward is a residual (step − backward − optimizer) and includes all untagged overhead; it cannot be interpreted in isolation.
 
 It is visible in Figure 10 and the [Full Per-Step Timing Statistics](#full-per-step-timing-statistics-action-1) table: stable from 1-GPU to 10 nodes (261.8 → 284.8 ms, +23 ms total), rises moderately at 25 nodes (+17 ms), then jumps sharply at 50 nodes (+86 ms), then falls back slightly at 100 nodes (−19 ms).
-
-`ncclDevKernel_Broadcast_RING_LL` — the DDP `_pre_forward` buffer sync — is one attributable contributor. Per-step cost is derived from `nsys stats gpukernsum` (total kernel time ÷ steps: 200/80/40/24 for 10/25/50/100 nodes respectively); it grows from 23.6 ms (10 nodes) → 37.1 ms (25 nodes) → 62.1 ms (50 nodes) → 101.6 ms (100 nodes). Unlike AllReduce, the broadcast uses RING_LL at all node counts — no TREE_LL variant appears. From 10 to 50 nodes, Broadcast accounts for +38.5 ms (~37%) of the +103 ms forward jump; the remaining ~65 ms has no identifiable kernel source in the available data. At 100 nodes Broadcast grows a further +39.5 ms yet the derived forward *drops* 18.6 ms, implying ~58 ms of other residual components improved. **A full per-kernel GPU trace is needed to decompose the forward residual reliably.**
 
 ![Forward Residual Decomposition](plots/4.5_forward_residual.png)
 *Figure 12. Forward residual decomposed into baseline forward compute (1-GPU floor), `ncclDevKernel_Broadcast_RING_LL`, and unexplained overhead. The 50-node bar shows a 64 ms unexplained spike with no identifiable kernel source; at 100 nodes Broadcast dominates (28% of forward residual) but the unexplained component collapses back to ~6 ms.*
 
-- **`cudaLaunchKernel` median is flat (8.2 → 7.4 µs across all scales)** — CPU dispatch is not a bottleneck at any scale tested.
+`ncclDevKernel_Broadcast_RING_LL` (DDP `_pre_forward` buffer sync) is one attributable contributor, measured via `nsys gpukernsum` (total kernel time ÷ steps): 23.6 ms → 37.1 ms → 62.1 ms → 101.6 ms at 10/25/50/100 nodes. Unlike AllReduce, Broadcast uses RING_LL at all node counts. From 10 to 50 nodes it accounts for +38.5 ms (~37%) of the +103 ms forward jump; the remaining ~65 ms has no identifiable kernel source. At 100 nodes Broadcast grows +39.5 ms yet the derived forward *drops* 18.6 ms, implying ~58 ms of other residual components improved.
 
-See [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail) for simple profiler cross-validation and statistical caveats on step-max and optimizer skew.
+> [!IMPORTANT]
+> The 50-node run is a likely outlier: the unexplained 64 ms forward spike is non-monotonic (the 100-node forward is 18 ms lower), suggesting a transient hardware or network effect rather than a systematic software scaling issue. Full decomposition would require a per-kernel GPU trace at 50 nodes, which is beyond the scope of this work; if the anomaly persists in future runs at this scale it warrants further investigation. Outside this outlier, scaling is gradual and the efficiency loss is consistent with expected DDP overhead at increasing node counts.
 
 **Performance improvement opportunities:**
 
 - **Set `broadcast_buffers=False` in DDP.** The `ncclDevKernel_Broadcast_RING_LL` kernel grows from 23.6 ms/step at 10 nodes to 62.1 ms/step at 50 nodes to 101.6 ms/step at 100 nodes (8.9% of total step time). The `O96` model uses Layer Norm, not Batch Norm, so this cross-rank buffer sync is unnecessary. Disabling it could potentially recover ~38 ms of unexplained forward overhead at 50 nodes and ~62 ms at 100 nodes, partially restoring scaling efficiency at both scales.
 
-- **Investigate forcing RING_LL at 25–50 nodes or increasing gradient bucket size.** NCCL selects TREE_LL automatically beyond a rank-count threshold. At 25 nodes the algorithm is already in a mixed RING/TREE transitional regime (317.3 ms RING + 59.8 ms TREE per step), and at 50 nodes it switches predominantly to TREE_LL (615 ms/step), saturating 83% of the backward window and ending full overlap. Forcing RING_LL via `NCCL_ALGO=RING` may restore the ~95% efficiency seen at lower node counts. Alternatively, increasing the DDP gradient bucket size beyond the default 25 MB would reduce the ~34 AllReduce calls per step at 50 nodes (29 at 100 nodes), lowering per-step NCCL overhead regardless of algorithm. Note: the single-node profiling in Action 3 reports 31 buckets per step under the same 25 MB default; the reason the count differs at multi-node scale is not established from the available data.
-
-- **Investigate and eliminate the unexplained 65 ms forward overhead at 50 nodes.** The DDP Broadcast (+38 ms) accounts for only 37% of the forward jump at 50 nodes. A full GPU kernel trace (`cuda_kern_sum`) at 50 nodes is needed to identify the remaining source — likely a synchronisation barrier or activation-checkpointing recompute scaling with world size. This is the single largest unresolved bottleneck.
-
 - **Mitigate NCCL first-batch warmup (11.07 s at 10 nodes).** This is the dominant cost for short/debug runs. The warmup can be eliminated by adding a dummy forward/backward pass before the profiled window, or by pre-initialising NCCL communicators with a no-op collective before training begins.
 
 - **Profile rank heterogeneity.** All timing data is from rank 0. The step max values (16,934 ms at 10 nodes) suggest at least one rank is significantly slower. Collecting profiles across all ranks — or at minimum the slowest rank — would confirm whether the efficiency loss at 50 nodes is uniform or driven by a single straggler.
+
+If the 50-node performance degradation persists in future runs, the following could be investigated:
+
+- **Run a full per-kernel GPU trace (`nsys cuda_kern_sum`) at 50 nodes** to identify the source of the unexplained ~65 ms forward overhead. The DDP Broadcast (+38 ms) accounts for only ~37% of the forward jump; the remainder has no identifiable kernel source in the available data.
+
+- **Investigate forcing RING_LL or increasing the gradient bucket size.** NCCL switches to predominantly TREE_LL at 50 nodes (615 ms/step). Backward wall time remains stable despite this, but forcing RING_LL via `NCCL_ALGO=RING` or increasing the DDP bucket size beyond the default 25 MB would reduce the number of AllReduce calls per step (~34 at 50 nodes, 29 at 100 nodes) and may help at the transitional 25-node regime.
+
+See [Supplementary Material: Multi-Node Profiling Detail](#supplementary-material-multi-node-profiling-detail) for simple profiler cross-validation and statistical caveats on step-max and optimizer skew.
 
 ### Action 2: Startup Overhead
 
@@ -811,9 +814,9 @@ f32 AllReduce GPU kernel time per step from `nsys stats` (`ncclDevKernel_AllRedu
 | 50 | 200 | 5.5 | 615.0 | 621.0 | 748.2 | 83% | TREE_LL dominant |
 | 100 | 400 | 15.0 | 504.0 | 519.0 | 738.4 | 70% | TREE_LL dominant |
 
-- **Up to 10 nodes:** AllReduce runs fully within the backward window (≤45% saturation) and is not on the critical path.
+- **Up to 10 nodes:** AllReduce total kernel time is ≤45% of the backward window; backward wall time is close to the 1-GPU baseline.
 - **25 nodes:** Transitional regime — both RING_LL and TREE_LL active simultaneously. Backward peaks at 764.9 ms (+7.9% vs 1-GPU).
-- **50 nodes:** NCCL switches predominantly to TREE_LL. AllReduce saturates 83% of the backward window — full overlap ends and communication appears on the critical path.
+- **50 nodes:** NCCL switches predominantly to TREE_LL. AllReduce kernel time reaches 621 ms (83% of backward window), but backward wall time (748 ms) is only 39 ms above 1-GPU — AllReduce continues to pipeline within the backward pass.
 - **100 nodes:** TREE_LL launch count falls from 34 to 29 per step at similar per-launch cost; saturation eases to 70%, consistent with the small improvement in backward median (748 → 738 ms).
 
 ### Statistical Caveats (Action 1)
